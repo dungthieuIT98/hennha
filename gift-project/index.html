@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07060f">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data: blob:; frame-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Hẹn Nha · Thiệp mời hẹn hò</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <div class="aurora a1"></div><div class="aurora a2"></div><div class="aurora a3"></div>
+  <div class="floor"></div>
+  <div class="sky" id="sky"></div>
+  <div class="grain"></div>
+</div>
+<div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
+<header class="topbar" id="topbar">
+  <a class="brand" href="#/"><span class="brand-orb" aria-hidden="true"></span><span>Hẹn Nha</span></a>
+  <nav class="top-nav" aria-label="Điều hướng chính">
+    <button class="link hide-sm" type="button" data-scroll="how">Cách chơi</button>
+    <a class="pill-link" href="#/q">Thiệp của tôi <b id="myCount">0</b></a>
+    <a class="btn btn-sm hide-sm" href="#/create" data-new>Tạo thiệp</a>
+  </nav>
+</header>
+
+<main id="app"></main>
+
+<div class="fx-layer" id="fx" aria-hidden="true"><div class="burst-lottie" id="burstLottie"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ============================ G0 · HOME ============================ -->
+<template id="tpl-home">
+<section class="hero wrap">
+  <div class="hero-copy">
+    <span class="chip-live"><i></i><span data-scramble>THIỆP MỜI HẸN HÒ · BẢN THỬ NGHIỆM</span></span>
+    <h1 class="hero-title"><span class="split">Rủ crush đi chơi,</span> <span class="grad-line">nút Không tự bỏ chạy</span></h1>
+    <p class="lead" data-reveal>Tạo một tấm thiệp trong một phút. Người ấy mở thư, bấm YES, chọn giờ, chọn kèo, rồi nhận vé hai người để khoe story.</p>
+    <div class="hero-cta" data-reveal>
+      <a class="btn btn-lg magnetic" href="#/create" data-new>Tạo thiệp – miễn phí <span aria-hidden="true">→</span></a>
+      <a class="btn btn-ghost btn-lg magnetic" href="#/n/demo">Xem thiệp mẫu</a>
+    </div>
+    <ul class="stats" data-reveal-stagger>
+      <li><b data-count="4">0</b><span>cảnh là xong thiệp</span></li>
+      <li><b data-count="7">0</b><span>lần né rồi nút Không bỏ chạy</span></li>
+      <li><b>0đ</b><span>cho thiệp đầu tiên</span></li>
+    </ul>
+  </div>
+  <div class="hero-stage">
+    <div class="orbit o1"><div class="orbit-ring"><i class="p1"><span>🧋</span></i><i class="p2"><span>🎬</span></i></div></div>
+    <div class="orbit o2"><div class="orbit-ring"><i class="p1"><span>🎡</span></i><i class="p2"><span>🍲</span></i><i class="p3"><span>📸</span></i></div></div>
+    <div class="stage-card glass glow-border tilt">
+      <div class="lottie lt-fill" data-lottie="hearts" data-loop="1" data-fit="slice"></div>
+      <span class="stage-eyebrow">Có thư cho cậu</span>
+      <div class="stage-env" id="heroEnv"></div>
+      <span class="stage-hint">Chạm con dấu để mở thử</span>
+    </div>
+    <div class="float-badge fb1"><span>YES ✓</span></div>
+    <div class="float-badge fb2"><span>Không?? 🙈</span></div>
+    <div class="float-badge fb3"><span>🎫 Vé cho hai người</span></div>
+  </div>
+</section>
+
+<section class="marquee" aria-label="Các kèo có sẵn">
+  <div class="mq-row" id="mq1"></div>
+  <div class="mq-row rev" id="mq2"></div>
+</section>
+
+<section class="section wrap">
+  <div class="sec-head" data-reveal>
+    <span class="eyebrow">Thử ngay</span>
+    <h2>Bấm thử nút <span class="grad-text">Không</span> xem</h2>
+    <p>Đây là trò đùa chính của thiệp. Nút Không né mỗi lần bị chạm, nút YES to dần, tới lần thứ 7 thì nút Không bỏ chạy luôn.</p>
+  </div>
+  <div class="demo glass glow-border" data-reveal>
+    <div class="demo-stage" id="dQ">
+      <p class="runaway" id="dRun" hidden>Nút Không đã bỏ chạy rồi!</p>
+      <h3 class="q">Cậu ơi, cuối tuần này đi chơi với tớ nha?</h3>
+      <div class="btns">
+        <button class="btn btn-lg" id="dYes" type="button">YES</button>
+        <button class="btn btn-ghost btn-lg" id="dNo" type="button" tabindex="-1">Không</button>
+      </div>
+      <p class="demo-count">Đã né <b id="dCount">0</b>/7</p>
+    </div>
+    <div class="demo-stage" id="dDone" hidden>
+      <div class="stamp">Chốt kèo!</div>
+      <p>Bấm YES xong, người ấy chọn giờ, chọn kèo rồi nhận một tấm vé như bên dưới.</p>
+      <div class="row-gap">
+        <a class="btn btn-ghost btn-sm" href="#/n/demo">Xem trọn thiệp mẫu</a>
+        <button class="link" id="dReplay" type="button">Chơi lại</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section wrap" id="how">
+  <div class="sec-head" data-reveal>
+    <span class="eyebrow">Cách chơi</span>
+    <h2>Bốn cảnh để tạo, <span class="grad-text">sáu cảnh</span> để nhận lời</h2>
+    <p>Không cần đăng nhập, không cần cài app. Gửi link qua Zalo hoặc Messenger là xong.</p>
+  </div>
+  <div class="seg" role="tablist" data-reveal>
+    <span class="seg-ind" aria-hidden="true"></span>
+    <button class="seg-tab" type="button" role="tab" aria-selected="true" data-tab="sender">Bạn làm</button>
+    <button class="seg-tab" type="button" role="tab" aria-selected="false" data-tab="receiver">Người ấy thấy</button>
+  </div>
+  <div class="steps four" id="stepsSender" data-reveal-stagger></div>
+  <div class="steps six" id="stepsReceiver" hidden></div>
+</section>
+
+<section class="section wrap ticket-sec">
+  <div class="ticket-copy" data-reveal>
+    <span class="eyebrow">Cảnh kết</span>
+    <h2>Một tấm vé, đủ để <span class="grad-text">khoe cả story</span></h2>
+    <ul class="ticks">
+      <li><span class="badge">📸</span><div><b>Lưu ảnh khoe</b><span>Ảnh dọc 9:16, nhấn giữ là lưu, kể cả trong Zalo hay Messenger.</span></div></li>
+      <li><span class="badge">📅</span><div><b>Thêm vào lịch</b><span>Google Calendar hoặc Lịch iPhone, không cần email.</span></div></li>
+      <li><span class="badge">💌</span><div><b>Quản lý phản hồi</b><span>Xem ai đã nhận lời, ai đổi giờ, ngày nào bị trùng lịch.</span></div></li>
+    </ul>
+  </div>
+  <div class="ticket-host" id="homeTicket" data-reveal></div>
+</section>
+
+<section class="section wrap">
+  <div class="cta-band glass glow-border" data-reveal>
+    <div class="lottie cta-lottie" data-lottie="couple" data-loop="1"></div>
+    <div>
+      <h2>Sẵn sàng <span class="grad-text">rủ người ấy</span> chưa?</h2>
+      <p>Thiệp đầu tiên miễn phí. Một phút là xong.</p>
+    </div>
+    <a class="btn btn-lg magnetic" href="#/create" data-new>Tạo thiệp ngay</a>
+  </div>
+</section>
+
+<footer class="footer wrap">
+  <nav><a href="#/" data-soon="Quyền riêng tư">Quyền riêng tư</a><a href="#/" data-soon="Điều khoản">Điều khoản</a><a href="#/" data-soon="Liên hệ">Liên hệ</a></nav>
+  <p>© 2026 Hẹn Nha · bản demo, chưa phải bản chính thức</p>
+</footer>
+</template>
+
+<!-- ============================ G1-G7 · CREATE ============================ -->
+<template id="tpl-create">
+<section class="create wrap">
+  <div class="stepper" id="stepper"></div>
+  <div class="create-grid">
+    <div class="panel glass glow-border">
+
+      <div class="cstep" data-step="1">
+        <span class="eyebrow">Cảnh 1 · Nhân vật chính</span>
+        <h2>Ai là nhân vật chính?</h2>
+        <p class="sub">Tên hai bạn sẽ hiện ngay trên phong bì</p>
+        <div class="field" id="fFrom">
+          <label for="nameFrom">Tên bạn</label>
+          <div class="input-wrap"><input id="nameFrom" type="text" maxlength="20" autocomplete="off" placeholder="Ví dụ: Minh"><span class="count" id="cFrom">0/20</span></div>
+          <p class="hint error" id="hFrom" hidden></p>
+        </div>
+        <div class="field" id="fTo">
+          <label for="nameTo">Tên người ấy <span class="tag">Không bắt buộc</span></label>
+          <div class="input-wrap"><input id="nameTo" type="text" maxlength="20" autocomplete="off" placeholder="Ví dụ: Lan"><span class="count" id="cTo">0/20</span></div>
+          <p class="hint" id="hTo">Để trống nếu gửi cho nhiều người, thư sẽ chào “Gửi cậu”</p>
+        </div>
+        <div class="nav"><a class="btn btn-ghost" href="#/">Trang chủ</a><button class="btn" id="next1" type="button" disabled>Tiếp</button></div>
+      </div>
+
+      <div class="cstep" data-step="2">
+        <span class="eyebrow">Cảnh 2 · Lời thoại</span>
+        <h2>Bạn muốn rủ thế nào?</h2>
+        <p class="sub">Chọn một câu mẫu rồi sửa cho đúng giọng bạn</p>
+        <div class="section-label">Câu mẫu</div>
+        <div class="choices" id="templates"></div>
+        <div class="field" id="fMsg">
+          <label for="msg">Câu rủ của bạn</label>
+          <div class="input-wrap"><textarea class="input" id="msg" maxlength="100" rows="3"></textarea><span class="count bottom" id="cMsg">0/100</span></div>
+          <p class="hint error" id="hMsg" hidden></p>
+        </div>
+        <div class="nav"><button class="btn btn-ghost" type="button" data-back>Quay lại</button><button class="btn" id="next2" type="button" disabled>Tiếp</button></div>
+      </div>
+
+      <div class="cstep" data-step="3">
+        <span class="eyebrow">Cảnh 3 · Suất chiếu</span>
+        <h2>Khi nào gặp nhau?</h2>
+        <p class="sub">Chọn sẵn một suất, hoặc để người ấy tự chọn</p>
+        <div class="seg2">
+          <button type="button" class="choice" id="mFixed"><span class="ico">🗓️</span><span class="c-title">Mình chọn sẵn</span><span class="c-sub">Người ấy vẫn đổi được</span></button>
+          <button type="button" class="choice" id="mRecipient"><span class="ico">🤝</span><span class="c-title">Để người ấy chọn</span><span class="c-sub">Chọn sau khi bấm YES</span></button>
+        </div>
+        <div id="fixedPane" hidden>
+          <div class="section-label">Ngày</div>
+          <div id="cal"></div>
+          <div class="section-label">Giờ</div>
+          <div class="time-grid" id="hours"></div>
+          <div class="section-label">Phút</div>
+          <div class="min-grid" id="mins"></div>
+          <p class="when-line" id="when"></p>
+        </div>
+        <div id="recipientPane" hidden><div class="info">Sau khi bấm YES, người ấy sẽ thấy lịch để tự chọn ngày và giờ (giờ 00–23, phút 00 hoặc 30).</div></div>
+        <div class="nav"><button class="btn btn-ghost" type="button" data-back>Quay lại</button><button class="btn" id="next3" type="button" disabled>Tiếp</button></div>
+      </div>
+
+      <div class="cstep" data-step="4">
+        <span class="eyebrow">Cảnh 4 · Kịch bản</span>
+        <h2>Hẹn nhau đi đâu?</h2>
+        <p class="sub">Chọn các kèo bạn muốn rủ, người ấy sẽ chọn trong số này</p>
+        <div class="group-title">Ăn uống <span id="cntAn"></span></div>
+        <div class="opt-grid" id="gAn"></div>
+        <div class="group-title">Đi chơi <span id="cntChoi"></span></div>
+        <div class="opt-grid" id="gChoi"></div>
+        <p class="counter" id="counter"></p>
+        <div class="nav"><button class="btn btn-ghost" type="button" data-back>Quay lại</button><button class="btn" id="next4" type="button" disabled>Chiếu thử</button></div>
+      </div>
+
+      <div class="cstep" data-step="5">
+        <span class="eyebrow">Chiếu thử</span>
+        <h2>Xem người ấy sẽ thấy gì</h2>
+        <p class="sub">Bấm thử như người ấy: mở thư, né nút Không, chọn giờ, chọn kèo</p>
+        <div class="preview-phone"><span class="phone-notch"></span><div class="preview-host" id="previewHost"></div></div>
+        <div class="center"><button class="link" id="replay" type="button">Xem lại từ đầu</button></div>
+        <div class="nav"><button class="btn btn-ghost" id="editBtn" type="button">Sửa</button><button class="btn" id="next5" type="button">Tạo link</button></div>
+      </div>
+
+      <div class="cstep" data-step="6">
+        <span class="eyebrow">Phát hành</span>
+        <h2>Chọn vé phát hành</h2>
+        <p class="sub">Thiệp đầu tiên của bạn được miễn phí</p>
+        <div class="choices" id="pricing"></div>
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="age"> <span>Tôi đủ 16 tuổi</span></label>
+          <label class="check"><input type="checkbox" id="terms"> <span>Tôi đồng ý <a href="#/create" data-soon="Điều khoản">Điều khoản</a> và <a href="#/create" data-soon="Chính sách quyền riêng tư">Chính sách quyền riêng tư</a></span></label>
+        </div>
+        <div class="nav"><button class="btn btn-ghost" type="button" data-back>Quay lại</button><button class="btn" id="createBtn" type="button" disabled>Tạo link</button></div>
+      </div>
+
+      <div class="cstep" data-step="7">
+        <div class="launch">
+          <span class="launch-emoji" aria-hidden="true">🎉</span>
+          <span class="eyebrow">Công chiếu</span>
+          <h2>Thiệp đã sẵn sàng!</h2>
+          <p class="sub">Gửi link cho người ấy qua Zalo hoặc Messenger</p>
+        </div>
+        <div class="linkbox"><span id="link"></span><button class="btn btn-ghost btn-sm" id="copyLink" type="button">Copy</button></div>
+        <div class="field" id="fShare">
+          <label for="shareMsg">Lời nhắn gửi kèm</label>
+          <div class="input-wrap"><textarea class="input" id="shareMsg" maxlength="100" rows="2">Tớ làm cái này cho cậu nè, mở xem đi</textarea><span class="count bottom" id="cShare"></span></div>
+          <p class="hint" id="hShare"></p>
+        </div>
+        <button class="btn btn-block btn-lg" id="shareBtn" type="button">Chia sẻ</button>
+        <div class="fb glass-inner" id="fb">
+          <p>Bạn biết tới tụi mình từ đâu?</p>
+          <div class="chip-row" id="fbOpts"></div>
+        </div>
+        <div class="nav"><a class="btn btn-ghost" href="#/q">Xem màn quản lý</a><button class="btn btn-ghost" id="newBtn" type="button">Tạo thiệp khác</button></div>
+      </div>
+
+    </div>
+    <aside class="phone" aria-label="Người ấy sẽ thấy">
+      <div class="phone-frame"><span class="phone-notch"></span><div class="phone-screen" id="phoneScreen"></div></div>
+      <p class="phone-cap"><i></i>Xem trực tiếp</p>
+    </aside>
+  </div>
+</section>
+</template>
+
+<!-- ============================ N1-N6 · RECEIVER ============================ -->
+<template id="tpl-n">
+<div class="ribbon" id="ribbon" hidden>CHIẾU THỬ · không tính lượt mở</div>
+<section class="recv wrap">
+  <div class="recv-card glass glow-border">
+    <div class="recv-progress"><i id="rProg"></i></div>
+
+    <div class="rstep active" data-step="1">
+      <div class="lottie lt-fill" data-lottie="hearts" data-loop="1" data-fit="slice"></div>
+      <span class="eyebrow">Có thư cho cậu</span>
+      <div class="recv-env" id="rEnv"></div>
+      <button class="btn btn-lg" id="openBtn" type="button">Mở thư</button>
+      <p class="trust">Không cần đăng nhập · Không cần cài app</p>
+      <div class="foot-links"><button class="link" id="whatBtn" type="button">Đây là gì?</button><button class="link" id="reportBtn" type="button">Báo cáo</button></div>
+    </div>
+
+    <div class="rstep" data-step="2">
+      <span class="eyebrow">Đang chiếu</span>
+      <div class="ask-emoji" aria-hidden="true">🥺</div>
+      <h1 class="ask-title" id="askTitle"></h1>
+      <p class="sub">Chỉ có một đáp án đúng thôi</p>
+      <div class="ask-buttons" id="askButtons">
+        <button class="btn btn-lg" id="yesBtn" type="button">YES</button>
+        <button class="btn btn-ghost btn-lg" id="noBtn" type="button">Không</button>
+      </div>
+      <p class="runaway" id="runawayMsg" hidden>Nút Không đã bỏ chạy rồi!</p>
+    </div>
+
+    <div class="rstep" data-step="3">
+      <span class="eyebrow">Cảnh một</span>
+      <h2>Khi nào mình gặp nhau?</h2>
+      <p class="sub" id="timeSub">Chọn ngày và giờ cậu rảnh</p>
+      <div class="proposal" id="proposal" hidden></div>
+      <div class="section-label">Ngày</div>
+      <div id="rCal"></div>
+      <div class="section-label">Giờ</div>
+      <div class="time-grid" id="rHours"></div>
+      <div class="section-label">Phút</div>
+      <div class="min-grid" id="rMins"></div>
+      <p class="when-line" id="rWhen"></p>
+      <div class="nav"><button class="btn btn-block" id="next3" type="button" disabled>Tiếp</button></div>
+    </div>
+
+    <div class="rstep" data-step="4">
+      <span class="eyebrow">Cảnh hai</span>
+      <h2>Mình đi đâu?</h2>
+      <p class="sub">Chọn một hoặc nhiều kèo cậu thích</p>
+      <div class="opt-grid two" id="planGrid"></div>
+      <div class="nav"><button class="btn btn-ghost" type="button" data-rback>Quay lại</button><button class="btn" id="next4" type="button" disabled>Tiếp</button></div>
+    </div>
+
+    <div class="rstep" data-step="5">
+      <span class="eyebrow">Cảnh cuối</span>
+      <h2>Cậu tên gì nhỉ?</h2>
+      <p class="sub" id="nameSub"></p>
+      <div class="field" id="fName">
+        <label for="rName">Tên của cậu</label>
+        <div class="input-wrap"><input id="rName" type="text" maxlength="20" autocomplete="off" placeholder="Ví dụ: Lan"><span class="count" id="cName">0/20</span></div>
+        <p class="hint error" id="hName" hidden></p>
+      </div>
+      <div class="nav"><button class="btn btn-ghost" type="button" data-rback>Quay lại</button><button class="btn" id="sendBtn" type="button" disabled>Gửi</button></div>
+    </div>
+
+    <div class="rstep" data-step="6">
+      <div class="lottie end-lottie" data-lottie="holdHands" data-loop="1"></div>
+      <span class="eyebrow">Cảnh kết</span>
+      <h2>Chốt kèo rồi nha!</h2>
+      <p class="sub" id="endSub"></p>
+      <div class="ticket-host" id="rTicket"></div>
+      <button class="btn btn-block btn-lg" id="saveBtn" type="button">Lưu ảnh khoe</button>
+      <div class="end-actions">
+        <button class="btn btn-ghost" id="calBtn" type="button">Thêm vào lịch</button>
+        <button class="btn btn-ghost" id="mineBtn" type="button">Tạo thiệp của bạn</button>
+      </div>
+    </div>
+  </div>
+</section>
+</template>
+
+<!-- ============================ N7 · GONE ============================ -->
+<template id="tpl-gone">
+<section class="recv wrap">
+  <div class="recv-card glass glow-border gone">
+    <div class="big-emoji" aria-hidden="true">🫥</div>
+    <span class="eyebrow">Hết suất chiếu</span>
+    <h2>Lời mời này không còn nữa</h2>
+    <p class="sub">Link có thể đã hết hạn, đã bị xóa hoặc bị sai.</p>
+    <a class="btn btn-lg" href="#/" data-new>Tạo thiệp của bạn</a>
+  </div>
+</section>
+</template>
+
+<!-- ============================ Q · MANAGE ============================ -->
+<template id="tpl-q">
+<section class="manage wrap">
+  <div class="q-head">
+    <span class="eyebrow">Hậu trường</span>
+    <h2>Thiệp của tôi</h2>
+    <p class="sub">Thiệp được lưu trên trình duyệt này. Mở bằng trình duyệt khác sẽ không thấy.</p>
+  </div>
+  <div class="q-bar">
+    <div class="seg" role="tablist">
+      <span class="seg-ind" aria-hidden="true"></span>
+      <button class="seg-tab" type="button" role="tab" aria-selected="true" data-tab="list">Danh sách thiệp</button>
+      <button class="seg-tab" type="button" role="tab" aria-selected="false" data-tab="cal">Lịch hẹn</button>
+    </div>
+    <button class="link" id="sampleBtn" type="button">Xem dữ liệu mẫu</button>
+  </div>
+  <div id="paneList">
+    <div class="q-list" id="qList"></div>
+    <div class="empty glass" id="qEmpty" hidden>
+      <div class="big-emoji" aria-hidden="true">🎬</div>
+      <b>Bạn chưa tạo thiệp nào</b>
+      <p>Tạo tấm đầu tiên, miễn phí.</p>
+    </div>
+  </div>
+  <div id="paneCal" hidden>
+    <div class="glass q-cal-card"><div id="qCal"></div></div>
+    <div id="qAppts"></div>
+  </div>
+  <a class="btn btn-lg btn-block q-cta" href="#/create" data-new>Tạo thiệp mới</a>
+</section>
+</template>
+
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/lottie_light.min.js"></script>
+<script src="lottie/animations.js"></script>
+<script src="js/data.js"></script>
+<script src="js/core.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
