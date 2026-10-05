@@ -1,6 +1,6 @@
 "use strict";
 window.HN = {
-  DOMAIN: "hennha.vn",
+  DOMAIN: "dungthieuit98.github.io/hennha",
   PAYMENT_ENABLED: false,
   NO_LIMIT: 7,
 
