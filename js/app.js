@@ -75,8 +75,6 @@
     HN.onLeave(() => intro.kill());
 
     $$("[data-scramble]", app).forEach(HN.scramble);
-    const counter = gsap.delayedCall(0.9, () => $$("[data-count]", app).forEach(HN.countUp));
-    HN.onLeave(() => counter.kill());
     $$(".tilt", app).forEach((n) => HN.tilt(n, 9));
     $$(".magnetic", app).forEach((n) => HN.magnetic(n));
 
@@ -136,7 +134,7 @@
     }));
 
     // ticket showcase
-    const tk = HN.ticket({ from: "Minh", to: "Lan", when: HN.fmtWhen(HN.iso(HN.nextSaturday()), 19, 30), plans: ["trasua", "xemphim"], dodges: 7, code: "k3x9m2pq" });
+    const tk = HN.ticket({ from: "Minh", to: "Lan", when: HN.fmtWhen(HN.iso(HN.nextSaturday()), 19, 30), plans: ["trasua", "xemphim"], dodges: HN.NO_LIMIT, code: "k3x9m2pq" });
     $("#homeTicket").append(tk);
     HN.tilt(tk, 12);
     HN.loop(gsap.to("#homeTicket", { y: -12, duration: 2.4, yoyo: true, repeat: -1, ease: "sine.inOut" }));
@@ -146,8 +144,9 @@
   };
 
   function initDemo() {
-    const stage = $("#dQ"), done = $("#dDone"), yes = $("#dYes"), no = $("#dNo"), count = $("#dCount"), run = $("#dRun");
-    let dodges = 0, gone = false, floating = false, last = 0;
+    const stage = $("#dQ"), done = $("#dDone"), yes = $("#dYes"), no = $("#dNo"), run = $("#dRun");
+    let dodges = 0, gone = false, floating = false, last = 0, autoYes = null;
+    HN.onLeave(() => autoYes && autoYes.kill());
     const overlaps = (a, b, g) => !(a.x + a.w + g < b.x || b.x + b.w + g < a.x || a.y + a.h + g < b.y || b.y + b.h + g < a.y);
 
     function place(ys) {
@@ -181,8 +180,6 @@
         floating = true;
       }
       dodges++;
-      count.textContent = String(dodges);
-      gsap.fromTo(count, { scale: 1.8 }, { scale: 1, duration: 0.35, ease: "back.out(3)" });
       const ys = Math.min(1 + 0.14 * dodges, 2);
       if (dodges >= HN.NO_LIMIT) {
         gone = true;
@@ -190,6 +187,7 @@
         gsap.to(no, { x: 260, y: -320, rotation: 60, scale: 0.3, autoAlpha: 0, duration: 0.7, ease: "power2.in" });
         run.hidden = false;
         gsap.from(run, { y: -10, autoAlpha: 0, duration: 0.3 });
+        autoYes = gsap.delayedCall(1.3, () => yes.click());
         return;
       }
       no.textContent = HN.NO_TEXTS[dodges % HN.NO_TEXTS.length];
@@ -201,6 +199,7 @@
     no.addEventListener("mouseenter", dodge);
     no.addEventListener("click", (e) => e.preventDefault());
     yes.addEventListener("click", () => {
+      if (autoYes) autoYes.kill();
       const r = yes.getBoundingClientRect();
       HN.burst(r.left + r.width / 2, r.top + r.height / 2);
       gsap.to(stage, {
@@ -215,7 +214,6 @@
     });
     $("#dReplay").addEventListener("click", () => {
       dodges = 0; gone = false; floating = false;
-      count.textContent = "0";
       run.hidden = true;
       gsap.set([yes, no, stage, done], { clearProps: "all" });
       no.classList.remove("floating");
@@ -232,8 +230,7 @@
   SCREENS.create = () => {
     const app = $("#app");
     const steps = $$(".cstep", app);
-    const grid = $(".create-grid", app), phone = $("#phoneScreen");
-    const LABELS = ["Nhân vật", "Lời thoại", "Suất chiếu", "Kịch bản", "Chiếu thử", "Phát hành"];
+        const LABELS = ["Nhân vật", "Lời thoại", "Thời gian", "Kịch bản", "Chiếu thử", "Phát hành"];
     const ENTER = {};
     let d = HN.draft.get();
     let step = Math.min(Math.max(1, Number(d.step) || 1), 7);
@@ -268,10 +265,8 @@
       HN.draft.set({ step: n });
       updateStepper();
       const enter = () => {
-        grid.classList.toggle("solo", n >= 5);
         steps.forEach((s) => s.classList.toggle("active", s === next));
         if (ENTER[n]) ENTER[n]();
-        renderPhone();
         if (animate) {
           gsap.fromTo(next.children, { y: 24, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.04, duration: 0.45, ease: "power3.out", clearProps: "transform,opacity", onComplete: () => { busy = false; } });
           window.scrollTo({ top: 0, behavior: HN.reduce ? "auto" : "smooth" });
@@ -287,64 +282,32 @@
     }
     $$("[data-back]", app).forEach((b) => b.addEventListener("click", () => goStep(step - 1)));
 
-    /* --- live phone preview (steps 1-4) --- */
-    function renderPhone(bump) {
-      if (step > 4) return;
-      const cur = HN.draft.get();
-      const to = cur.to || "cậu", from = cur.from || "bạn";
-      if (phone.dataset.step === "1" && step === 1) {
-        $(".env-to-name", phone).textContent = to;
-        $(".env-from-name", phone).textContent = from;
-        if (bump) gsap.fromTo($(".env", phone), { scale: 1.05 }, { scale: 1, duration: 0.35, ease: "back.out(3)" });
-        return;
-      }
-      const changed = phone.dataset.step !== String(step);
-      phone.dataset.step = String(step);
-      const wrap = el("div", "ph-inner");
-      if (step === 1) {
-        wrap.append(el("span", "eyebrow", "Có thư cho cậu"), HN.envelope({ to, from }), el("p", "ph-hint", "Người ấy sẽ thấy phong bì này đầu tiên"));
-      } else if (step === 2) {
-        const pills = el("div", "ph-pills");
-        pills.append(el("span", "ph-yes", "YES"), el("span", "ph-no", "Không"));
-        wrap.append(el("span", "eyebrow", "Đang chiếu"), el("div", "ph-emoji", "🥺"), el("p", "ph-q", HN.clean($("#msg").value) || "…"), pills);
-      } else if (step === 3) {
-        const fixed = cur.timeMode === "fixed" && cur.date && cur.hour != null && cur.minute != null;
-        const box = el("div", "ph-when");
-        box.append(el("span", "badge", fixed ? "📅" : "🤝"), el("strong", null, fixed ? HN.fmtWhen(cur.date, cur.hour, cur.minute) : cur.timeMode === "recipient" ? "Người ấy tự chọn ngày giờ" : "Chưa chọn giờ"));
-        wrap.append(el("span", "eyebrow", "Cảnh một"), el("p", "ph-title", "Khi nào mình gặp nhau?"), box);
-      } else {
-        const fixed = cur.timeMode === "fixed" && cur.date && cur.hour != null && cur.minute != null;
-        wrap.append(el("span", "eyebrow", "Cảnh kết"), HN.ticket({ from, to: cur.to || "Người ấy", when: fixed ? HN.fmtWhen(cur.date, cur.hour, cur.minute) : "", plans: cur.plans || [], dodges: 7, code: "preview" }));
-      }
-      phone.replaceChildren(wrap);
-      if (changed) gsap.from(wrap.children, { y: 20, autoAlpha: 0, stagger: 0.06, duration: 0.45, ease: "back.out(1.6)" });
-    }
-
     /* --- G1 names --- */
     (() => {
       const from = $("#nameFrom"), to = $("#nameTo");
-      const DEFAULT_HINT = $("#hTo").textContent;
-      let touched = false;
+      let touched = false, toTouched = false;
       from.value = d.from || "";
       to.value = d.to || "";
       function refresh() {
         const pf = HN.checkText(from.value, { max: 20, emptyMsg: "Bạn chưa nhập tên" });
-        const pt = HN.checkText(to.value, { required: false, max: 20 });
+        const pt = HN.checkText(to.value, { max: 20, emptyMsg: "Bạn chưa nhập tên người ấy" });
         $("#cFrom").textContent = HN.len(from.value) + "/20";
         $("#cTo").textContent = HN.len(to.value) + "/20";
         const show = touched && pf;
         $("#fFrom").classList.toggle("invalid", !!show);
         $("#hFrom").hidden = !show;
         $("#hFrom").textContent = pf;
-        $("#fTo").classList.toggle("invalid", !!pt);
-        $("#hTo").textContent = pt || DEFAULT_HINT;
-        $("#hTo").classList.toggle("error", !!pt);
+        const showTo = toTouched && pt;
+        $("#fTo").classList.toggle("invalid", !!showTo);
+        $("#hTo").hidden = !showTo;
+        $("#hTo").textContent = pt;
         $("#next1").disabled = !!pf || !!pt;
         HN.draft.set({ from: pf ? "" : HN.clean(from.value), to: pt ? "" : HN.clean(to.value) });
       }
-      from.addEventListener("input", () => { touched = true; refresh(); renderPhone(true); });
+      from.addEventListener("input", () => { touched = true; refresh(); });
       from.addEventListener("blur", () => { touched = true; refresh(); });
-      to.addEventListener("input", () => { refresh(); renderPhone(true); });
+      to.addEventListener("input", () => { toTouched = true; refresh(); });
+      to.addEventListener("blur", () => { toTouched = true; refresh(); });
       $("#next1").addEventListener("click", () => goStep(2));
       refresh();
     })();
@@ -361,34 +324,42 @@
       $("#next2").disabled = !!p;
       HN.draft.set({ message: p ? "" : HN.clean(msg.value) });
     }
+    const tplButtons = [];
+    const tplText = (t) => HN.renderTemplate(t.text, HN.draft.get().to);
+    function markTemplates() {
+      const now = HN.clean(msg.value);
+      tplButtons.forEach(({ b, t }) => b.classList.toggle("selected", now === HN.clean(tplText(t))));
+    }
     function renderTemplates() {
       const cur = HN.draft.get();
-      const sel = cur.templateId || "t1";
       const host = $("#templates");
       host.replaceChildren();
+      tplButtons.length = 0;
       HN.TEMPLATES.forEach((t) => {
-        const b = el("button", "choice" + (t.id === sel ? " selected" : ""));
+        const b = el("button", "choice");
         b.type = "button";
-        b.append(el("span", "dot"), el("span", null, HN.renderTemplate(t.text, cur.to)));
+        b.append(el("span", "dot"), el("span", null, tplText(t)));
         b.addEventListener("click", () => {
           HN.draft.set({ templateId: t.id });
-          msg.value = HN.renderTemplate(t.text, HN.draft.get().to);
-          renderTemplates();
-          renderPhone();
+          msg.value = tplText(t);
+          refreshMsg();
+          markTemplates();
           gsap.fromTo(msg, { scale: 0.97 }, { scale: 1, duration: 0.35, ease: "back.out(3)" });
         });
+        tplButtons.push({ b, t });
         host.append(b);
       });
-      if (!msg.value) msg.value = HN.renderTemplate(HN.TEMPLATES.find((t) => t.id === sel).text, cur.to);
+      if (!msg.value) msg.value = tplText(HN.TEMPLATES.find((t) => t.id === cur.templateId) || HN.TEMPLATES[0]);
       refreshMsg();
+      markTemplates();
     }
-    msg.addEventListener("input", () => { refreshMsg(); renderPhone(); });
+    msg.addEventListener("input", () => { refreshMsg(); markTemplates(); });
     $("#next2").addEventListener("click", () => goStep(3));
     ENTER[2] = renderTemplates;
 
     /* --- G3 time --- */
     (() => {
-      const st = { mode: d.timeMode || null, date: d.date || null, hour: d.hour ?? null, minute: d.minute ?? null };
+      const st = { date: d.date || null, hour: d.hour ?? null, minute: d.minute ?? null };
       if (st.date && (!HN.validDate(st.date) || HN.isPast(st.date, 23, 59))) Object.assign(st, { date: null, hour: null, minute: null });
       HN.calendar($("#cal"), {
         selected: HN.parseISO(st.date),
@@ -409,27 +380,13 @@
           update();
         },
       });
-      function setMode(m) {
-        const was = st.mode;
-        st.mode = m;
-        update();
-        const pane = m === "fixed" ? $("#fixedPane") : $("#recipientPane");
-        if (was !== m) gsap.from(pane, { y: 20, autoAlpha: 0, duration: 0.45, ease: "power3.out" });
-      }
-      $("#mFixed").addEventListener("click", () => setMode("fixed"));
-      $("#mRecipient").addEventListener("click", () => setMode("recipient"));
       function update() {
-        $("#mFixed").classList.toggle("selected", st.mode === "fixed");
-        $("#mRecipient").classList.toggle("selected", st.mode === "recipient");
-        $("#fixedPane").hidden = st.mode !== "fixed";
-        $("#recipientPane").hidden = st.mode !== "recipient";
         const ok = st.date && st.hour != null && st.minute != null && !HN.isPast(st.date, st.hour, st.minute);
         $("#when").textContent = ok ? "✓ " + HN.fmtWhen(st.date, st.hour, st.minute) : st.date ? "Chọn giờ và phút" : "Chọn một ngày trên lịch";
         $("#when").classList.toggle("ok", !!ok);
-        $("#next3").disabled = !(st.mode === "recipient" || (st.mode === "fixed" && ok));
-        HN.draft.set({ timeMode: st.mode, date: st.date, hour: st.hour, minute: st.minute });
+        $("#next3").disabled = !ok;
+        HN.draft.set({ timeMode: "fixed", date: st.date, hour: st.hour, minute: st.minute });
         tp.render();
-        renderPhone();
       }
       update();
       $("#next3").addEventListener("click", () => goStep(4));
@@ -438,6 +395,7 @@
     /* --- G4 plans --- */
     (() => {
       const chosen = new Set((d.plans || []).filter((id) => HN.planById(id)));
+      let tab = "an";
       function group(g, host) {
         host.replaceChildren();
         HN.PLANS.filter((p) => p.group === g).forEach((p) => {
@@ -455,17 +413,22 @@
         });
       }
       function render() {
-        group("an", $("#gAn"));
-        group("choi", $("#gChoi"));
+        group(tab, $("#planList"));
+        $$("[data-ptab]", app).forEach((t) => t.setAttribute("aria-selected", String(t.dataset.ptab === tab)));
         const plans = HN.PLANS.filter((p) => chosen.has(p.id)).map((p) => p.id);
         const nAn = HN.PLANS.filter((p) => p.group === "an" && chosen.has(p.id)).length;
-        $("#cntAn").textContent = nAn ? "đã chọn " + nAn : "";
-        $("#cntChoi").textContent = plans.length - nAn ? "đã chọn " + (plans.length - nAn) : "";
+        $("#cntAn").textContent = nAn ? "(" + nAn + ")" : "";
+        $("#cntChoi").textContent = plans.length - nAn ? "(" + (plans.length - nAn) + ")" : "";
         $("#counter").textContent = plans.length ? "Đã chọn " + plans.length + " kèo" : "Chọn ít nhất 1 kèo";
         $("#next4").disabled = plans.length === 0;
         HN.draft.set({ plans });
-        renderPhone();
       }
+      $$("[data-ptab]", app).forEach((t) => t.addEventListener("click", () => {
+        if (tab === t.dataset.ptab) return;
+        tab = t.dataset.ptab;
+        render();
+        gsap.fromTo($$(".option", $("#planList")), { y: 20, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.03, duration: 0.3, clearProps: "transform,opacity" });
+      }));
       render();
       $("#next4").addEventListener("click", () => goStep(5));
     })();
@@ -473,7 +436,7 @@
     /* --- G5 preview: the real receiver flow inside a phone frame --- */
     function loadPreview() {
       const cur = HN.draft.get();
-      const inv = { code: "preview", from: cur.from, to: cur.to, message: cur.message, timeMode: cur.timeMode, date: cur.date, hour: cur.hour, minute: cur.minute, plans: cur.plans || [] };
+      const inv = { code: "preview", from: cur.from, to: cur.to, message: cur.message, timeMode: "fixed", date: cur.date, hour: cur.hour, minute: cur.minute, plans: cur.plans || [] };
       const enc = HN.encodeInvite(inv);
       const ok = !!HN.decodeInvite(enc);
       if (!ok) HN.toast("Chưa đủ dữ liệu, đang chiếu bằng thiệp mẫu");
@@ -487,7 +450,7 @@
     $("#editBtn").addEventListener("click", () => {
       HN.sheet((sh, close) => {
         const list = el("div", "edit-list");
-        ["Cảnh 1 · Nhân vật chính", "Cảnh 2 · Lời thoại", "Cảnh 3 · Suất chiếu", "Cảnh 4 · Kịch bản"].forEach((label, i) => {
+        ["Cảnh 1 · Nhân vật chính", "Cảnh 2 · Lời thoại", "Cảnh 3 · Thời gian", "Cảnh 4 · Kịch bản"].forEach((label, i) => {
           const b = el("button", "btn btn-ghost btn-block", label);
           b.type = "button";
           b.addEventListener("click", () => { close(); goStep(i + 1); });
@@ -537,7 +500,7 @@
 
     function publish(plan) {
       const cur = HN.draft.get();
-      const inv = { code: HN.randomCode(8), from: cur.from, to: cur.to, message: cur.message, timeMode: cur.timeMode, date: cur.date, hour: cur.hour, minute: cur.minute, plans: cur.plans || [] };
+      const inv = { code: HN.randomCode(8), from: cur.from, to: cur.to, message: cur.message, timeMode: "fixed", date: cur.date, hour: cur.hour, minute: cur.minute, plans: cur.plans || [] };
       const enc = HN.encodeInvite(inv);
       if (!HN.decodeInvite(enc)) { HN.toast("Thiệp còn thiếu thông tin, kiểm tra lại các cảnh nhé"); return; }
       const url = HN.baseUrl() + "#/n/" + enc;
@@ -596,12 +559,63 @@
     if (step >= 2) renderTemplates();
     goStep(step, false);
     if (step <= 4) gsap.fromTo($$(".cstep.active > *", app), { y: 24, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.05, duration: 0.5, ease: "power3.out", clearProps: "transform,opacity" });
-    gsap.fromTo(".phone", { x: 60, rotation: 6, opacity: 0 }, { x: 0, rotation: 0, opacity: 1, duration: 0.9, ease: "back.out(1.4)", delay: 0.15, clearProps: "transform,opacity" });
   };
 
   /* =====================================================================
-     RECEIVER (N1 to N6, N7 when invalid)
+     RECEIVER (N1 to N3, N7 when invalid)
      ===================================================================== */
+  const DOW_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+
+  /* N1 botanicals. Coordinates live in the bloom viewBox, where the envelope covers x 70-330, y 140-312,
+     so every stem starts hidden behind it and grows outwards. */
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const LEAF = "M0 0C6 -9 17 -11 26 -5C18 3 7 5 0 0Z";
+  const BLOOM = {
+    stems: [
+      "M130 240C90 222 50 192 46 142C43 106 60 82 84 66",
+      "M110 280C70 286 40 270 22 240",
+      "M180 170C170 130 160 100 152 62C149 46 151 32 158 20",
+      "M220 170C232 132 248 104 262 74",
+      "M270 240C310 222 350 192 354 142C357 106 340 82 316 66",
+      "M290 280C330 286 360 270 378 240",
+    ],
+    leaves: [
+      [70, 206, 200, 1], [47, 150, 170, 0.9], [52, 104, 280, 0.85], [100, 228, 150, 0.7], [62, 282, 100, 0.8], [36, 262, 220, 0.75],
+      [168, 122, 200, 0.8], [151, 80, 320, 0.75], [236, 124, 330, 0.8], [252, 96, 220, 0.7],
+      [330, 206, -20, 1], [353, 150, 10, 0.9], [348, 104, 260, 0.85], [300, 228, 30, 0.7], [338, 282, 80, 0.8], [364, 262, 320, 0.75],
+    ],
+    flowers: [[84, 66, 1.15, 0], [22, 240, 0.75, 1], [158, 20, 1, 2], [262, 74, 0.9, 0], [316, 66, 1.15, 1], [378, 240, 0.75, 2]],
+    buds: [[40, 196], [118, 44], [206, 6], [296, 36], [362, 192], [12, 286], [388, 286]],
+  };
+  function sv(tag, attrs, parent) {
+    const n = document.createElementNS(SVGNS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.append(n);
+    return n;
+  }
+  function gradient(defs, tag, id, attrs, stops) {
+    const g = sv(tag, Object.assign({ id }, attrs), defs);
+    stops.forEach(([o, c]) => sv("stop", { offset: o, "stop-color": c }, g));
+  }
+  function buildBloom(svg) {
+    const defs = sv("defs", {}, svg);
+    gradient(defs, "linearGradient", "bmStem", { x1: 0, y1: 1, x2: 0, y2: 0 }, [[0, "#5eead4"], [1, "#22d3ee"]]);
+    gradient(defs, "linearGradient", "bmLeaf", { x1: 0, y1: 0, x2: 1, y2: 0 }, [[0, "#2dd4bf"], [1, "#a7f3d0"]]);
+    gradient(defs, "radialGradient", "bmP0", { cy: 0.9, r: 1 }, [[0, "#fff"], [0.5, "#ff8fbf"], [1, "#ff4f8b"]]);
+    gradient(defs, "radialGradient", "bmP1", { cy: 0.9, r: 1 }, [[0, "#fff"], [0.5, "#d8b4fe"], [1, "#a855f7"]]);
+    gradient(defs, "radialGradient", "bmP2", { cy: 0.9, r: 1 }, [[0, "#fff"], [0.6, "#fce7f3"], [1, "#f9a8d4"]]);
+    const stems = BLOOM.stems.map((d) => sv("path", { d, class: "stem" }, svg));
+    const leaves = BLOOM.leaves.map(([x, y, r, s]) => sv("path", { d: LEAF, class: "leaf" }, sv("g", { transform: `translate(${x} ${y}) rotate(${r}) scale(${s})` }, svg)));
+    const flowers = BLOOM.flowers.map(([x, y, s, c]) => {
+      const g = sv("g", {}, sv("g", { transform: `translate(${x} ${y}) scale(${s})` }, svg));
+      for (let k = 0; k < 6; k++) sv("ellipse", { cy: -9, rx: 5, ry: 9, class: "petal", fill: `url(#bmP${c})`, transform: `rotate(${k * 60})` }, g);
+      sv("circle", { r: 3.6, class: "core" }, g);
+      return g;
+    });
+    const buds = BLOOM.buds.map(([x, y]) => sv("circle", { cx: x, cy: y, r: 2.4, class: "bud" }, svg));
+    return { stems, leaves, flowers, buds };
+  }
+
   const DEMO = () => ({ code: "demo00", from: "Minh", to: "Lan", message: "Lan ơi, cuối tuần này đi chơi với tớ nha?", timeMode: "fixed", date: HN.iso(HN.nextSaturday()), hour: 19, minute: 30, plans: ["trasua", "cafe", "xemphim", "daoho"] });
 
   SCREENS.n = (r) => {
@@ -616,17 +630,13 @@
       HN.loop(gsap.to(".gone .big-emoji", { y: -10, rotation: 8, duration: 1.4, yoyo: true, repeat: -1, ease: "sine.inOut" }));
       return;
     }
-    if (PREVIEW) $("#ribbon").hidden = false;
     const greet = inv.to || "cậu";
-    const ans = { date: null, hour: null, minute: null, plans: [], name: inv.to || "", dodges: 0 };
+    const ans = { date: inv.date, hour: inv.hour, minute: inv.minute, plans: inv.plans, name: inv.to, dodges: 0 };
     const steps = $$(".rstep", app);
     let step = 1, busy = false;
     const ENTER = {};
 
-    const env = HN.envelope({ to: greet, from: inv.from });
-    $("#rEnv").append(env);
     $("#askTitle").textContent = inv.message;
-    $("#nameSub").textContent = "Để " + inv.from + " biết ai đã nhận lời";
     $("#endSub").textContent = PREVIEW ? "Đây là màn người ấy thấy sau khi gửi" : inv.from + " sẽ nhận được câu trả lời của cậu";
     HN.mountLotties(steps[0]);
 
@@ -643,7 +653,7 @@
           gsap.set(prev, { clearProps: "all" });
           next.classList.add("active");
           step = n;
-          gsap.to("#rProg", { scaleX: (n - 1) / 5, duration: 0.5, ease: "power3.out" });
+          gsap.to("#rProg", { scaleX: (n - 1) / 2, duration: 0.5, ease: "power3.out" });
           HN.mountLotties(next);
           if (ENTER[n]) ENTER[n]();
           gsap.fromTo(next, { x: 40 * dir, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: "power3.out", clearProps: "transform,opacity", onComplete: () => { busy = false; } });
@@ -653,29 +663,103 @@
     }
     $$("[data-rback]", app).forEach((b) => b.addEventListener("click", () => goTo(step - 1)));
 
-    /* N1 open the letter */
+    /* N1 letter: the white envelope, then the letter turns into the event dashboard */
+    const wenv = $("#wenv"), heart = $("#heartBtn"), letter = $("#wLetter"), flap = $("#wFlap");
+    const pad2 = HN.pad2;
+    $("#wTo").textContent = "Gửi " + greet;
+    $("#dCode").textContent = "#" + inv.code.toUpperCase();
+    $("#dTo").textContent = greet;
+    $("#dFrom").textContent = inv.from;
+    $("#dMsg").textContent = inv.message;
+    const day = HN.parseISO(inv.date);
+    const hasTime = inv.hour != null && inv.minute != null;
+    $("#dWhen").textContent = day ? DOW_SHORT[day.getDay()] + " · " + pad2(day.getDate()) + "/" + pad2(day.getMonth() + 1) + (hasTime ? " · " + pad2(inv.hour) + ":" + pad2(inv.minute) : "") : "Chưa chốt";
+    const target = day && hasTime ? new Date(day.getFullYear(), day.getMonth(), day.getDate(), inv.hour, inv.minute) : null;
+    function tick() {
+      const left = $("#dLeft");
+      if (!target) { left.textContent = "—"; return; }
+      const ms = target - Date.now();
+      if (ms <= 0) { left.textContent = "Tới giờ rồi!"; return; }
+      const s = Math.floor(ms / 1000);
+      left.textContent = Math.floor(s / 86400) + "d " + pad2(Math.floor(s / 3600) % 24) + ":" + pad2(Math.floor(s / 60) % 60) + ":" + pad2(s % 60);
+    }
+    const plans = (inv.plans || []).map(HN.planById).filter(Boolean);
+    $("#dCount").textContent = plans.length + " kèo";
+    plans.forEach((p, i) => {
+      const li = el("li");
+      const txt = el("div");
+      txt.append(el("b", null, p.name), el("small", null, p.group === "an" ? "Ăn uống" : "Đi chơi"));
+      li.append(el("span", "ico", p.ico), txt, el("span", "n", "#" + pad2(i + 1)));
+      $("#dPlans").append(li);
+    });
+    if (!plans.length) { $(".dash-label", app).hidden = true; $("#dPlans").hidden = true; }
+
+    const bloom = buildBloom($("#bloom"));
+    bloom.stems.forEach((s) => { const len = s.getTotalLength(); gsap.set(s, { strokeDasharray: len, strokeDashoffset: len }); });
+    gsap.set(wenv, { transformPerspective: 900 });
+    const BLOOM_SECONDS = 1;
+    const grow = gsap.timeline()
+      .to(bloom.stems, { strokeDashoffset: 0, duration: 0.7, stagger: 0.05, ease: "power2.out" })
+      .from(bloom.leaves, { scale: 0, transformOrigin: "0% 50%", duration: 0.35, stagger: 0.02, ease: "back.out(2.2)" }, "-=0.55")
+      .from(bloom.flowers, { scale: 0, rotation: -120, transformOrigin: "50% 50%", duration: 0.5, stagger: 0.04, ease: "back.out(1.7)" }, "-=0.4")
+      .from(bloom.buds, { scale: 0, opacity: 0, transformOrigin: "50% 50%", duration: 0.25, stagger: 0.03 }, "-=0.3");
+    grow.duration(BLOOM_SECONDS);
     const intro = gsap.timeline()
       .fromTo(".recv-card", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", clearProps: "transform,opacity" })
-      .fromTo(env, { scale: 0.4, rotation: -12, opacity: 0 }, { scale: 1, rotation: 0, opacity: 1, duration: 1, ease: "elastic.out(1, 0.55)" }, "-=0.3")
-      .fromTo($$('.rstep[data-step="1"] .eyebrow, #openBtn, .trust', app), { y: 16, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.08, duration: 0.4, clearProps: "transform,opacity" }, "-=0.6");
+      .fromTo("#loveEyebrow", { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, clearProps: "transform,opacity" }, "-=0.3")
+      .fromTo(wenv, { y: 60, rotationX: 55, scale: 0.7, opacity: 0 }, { y: 0, rotationX: 0, scale: 1, opacity: 1, duration: 1.1, ease: "elastic.out(1, 0.75)" }, "<")
+      .add(grow, "-=0.8")
+      .fromTo(heart, { scale: 0 }, { scale: 1, duration: 0.5, ease: "back.out(3)", clearProps: "transform" }, "-=0.5")
+      .fromTo("#loveHint", { y: 10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, clearProps: "transform,opacity" }, "-=0.2");
     HN.onLeave(() => intro.kill());
-    const envFloat = HN.loop(gsap.to(env, { y: -8, duration: 1.6, yoyo: true, repeat: -1, ease: "sine.inOut" }));
-    const sealPulse = HN.loop(gsap.to($(".env-seal", env), { scale: 1.12, duration: 0.6, yoyo: true, repeat: -1, ease: "sine.inOut" }));
-    let opened = false;
+    const idle = [
+      HN.loop(gsap.to(wenv, { y: -7, duration: 1.8, yoyo: true, repeat: -1, ease: "sine.inOut", delay: intro.duration() })),
+      HN.loop(gsap.to(bloom.flowers, { rotation: "+=14", transformOrigin: "50% 50%", duration: 2.6, ease: "sine.inOut", delay: intro.duration(), stagger: { each: 0.3, repeat: -1, yoyo: true } })),
+      HN.fine ? null : HN.loop(gsap.fromTo(wenv, { rotationY: -10 }, { rotationY: 10, duration: 3, yoyo: true, repeat: -1, ease: "sine.inOut", delay: intro.duration(), immediateRender: false })),
+    ];
+    HN.tilt(wenv, 14);
+
+    let opened = false, ticker = 0;
+    HN.onLeave(() => clearInterval(ticker));
     function open() {
       if (opened) return;
       opened = true;
-      if (sealPulse) sealPulse.kill();
-      if (envFloat) envFloat.kill();
-      const s = $(".env-seal", env).getBoundingClientRect();
-      HN.burst(s.left + s.width / 2, s.top + s.height / 2, 26);
-      const t = HN.openEnvelope(env).add(() => goTo(2), "+=0.3");
+      heart.classList.remove("beating");
+      heart.disabled = true;
+      idle.forEach((t) => t && t.kill());
+      const h = heart.getBoundingClientRect();
+      HN.burst(h.left + h.width / 2, h.top + h.height / 2, 30);
+      const t = gsap.timeline()
+        .to(wenv, { y: 0, rotationX: 0, rotationY: 0, duration: 0.4, ease: "power3.out" })
+        .to(heart, { scale: 1.35, duration: 0.15 }, 0)
+        .to(heart, { scale: 0, rotation: 25, opacity: 0, duration: 0.3, ease: "back.in(2)" })
+        .to("#loveHint", { opacity: 0, duration: 0.2 }, "<")
+        .to(flap, { rotationX: 180, transformPerspective: 800, duration: 0.6, ease: "power2.inOut" }, "<0.1")
+        .set(flap, { zIndex: 1 }, "<0.3")
+        .to(letter, { y: -wenv.offsetHeight * 0.62, duration: 0.6, ease: "back.out(1.4)" }, "-=0.1")
+        .to([$(".wenv-back", wenv), $(".wenv-front", wenv), flap, "#bloom"], { opacity: 0, y: 30, duration: 0.45, ease: "power2.in" }, "+=0.15")
+        .add(morph);
       HN.onLeave(() => t.kill());
     }
-    $("#openBtn").addEventListener("click", open);
-    $(".env-seal", env).addEventListener("click", open);
-    $("#whatBtn").addEventListener("click", () => HN.toast("Một tấm thiệp mời đi chơi, " + inv.from + " làm riêng cho cậu"));
-    $("#reportBtn").addEventListener("click", () => HN.toast("Tính năng báo cáo sẽ có sớm"));
+    function morph() {
+      const from = letter.getBoundingClientRect();
+      $("#love").hidden = true;
+      $("#loveEyebrow").textContent = "Thư từ " + inv.from;
+      const dash = $("#dash");
+      dash.hidden = false;
+      const to = dash.getBoundingClientRect();
+      tick();
+      ticker = setInterval(tick, 1000);
+      const t = gsap.timeline({ onComplete: () => $("#dashGo").focus({ preventScroll: true }) })
+        .fromTo(dash, { x: from.left - to.left, y: from.top - to.top, scaleX: from.width / to.width, scaleY: from.height / to.height, transformOrigin: "0 0" },
+          { x: 0, y: 0, scaleX: 1, scaleY: 1, duration: 0.75, ease: "power3.inOut", clearProps: "transform" })
+        .to(".dash-skin", { opacity: 0, duration: 0.45 }, "-=0.35")
+        .from($$(".dash > :not(.dash-skin)", app), { y: 14, opacity: 0, stagger: 0.06, duration: 0.4, ease: "power3.out", clearProps: "transform,opacity" }, "-=0.2")
+        .from($$(".dash-tl li", app), { x: -16, opacity: 0, stagger: 0.06, duration: 0.35, ease: "power3.out", clearProps: "transform,opacity" }, "-=0.3");
+      HN.onLeave(() => t.kill());
+    }
+    heart.addEventListener("click", open);
+    $("#dashGo").addEventListener("click", () => goTo(2));
 
     /* N2 the YES / NO joke */
     let askSplit = null;
@@ -687,7 +771,7 @@
       HN.loop(gsap.to(".ask-emoji", { rotation: 10, y: -6, duration: 0.9, yoyo: true, repeat: -1, ease: "sine.inOut", delay: 0.8 }));
     };
     const yesBtn = $("#yesBtn"), noBtn = $("#noBtn");
-    let gone = false, last = 0;
+    let gone = false, last = 0, autoYes = null, recorded = false;
     function toBody() {
       if (noBtn.parentElement === document.body) return;
       const rect = noBtn.getBoundingClientRect();
@@ -726,6 +810,8 @@
       const m = $("#runawayMsg");
       m.hidden = false;
       gsap.from(m, { y: 10, autoAlpha: 0, duration: 0.35 });
+      autoYes = gsap.delayedCall(1.3, () => yesBtn.click());
+      HN.onLeave(() => autoYes.kill());
     }
     function parkNo() { if (noBtn.parentElement === document.body) noBtn.hidden = true; }
     HN.onLeave(() => noBtn.remove());
@@ -734,100 +820,19 @@
     noBtn.addEventListener("pointerdown", dodge);
     noBtn.addEventListener("click", (e) => e.preventDefault());
     yesBtn.addEventListener("click", () => {
+      if (autoYes) autoYes.kill();
       const b = yesBtn.getBoundingClientRect();
       HN.burst(b.left + b.width / 2, b.top + b.height / 2);
+      if (!PREVIEW && !DEMO_MODE && !IN_FRAME && !recorded) {
+        recorded = true;
+        HN.responses.add(inv.code, { name: ans.name, date: ans.date, hour: ans.hour, minute: ans.minute, plans: ans.plans, dodges: ans.dodges, at: new Date().toISOString() });
+      }
       goTo(3);
     });
 
-    /* N3 pick a time */
-    if (inv.timeMode === "fixed") {
-      Object.assign(ans, { date: inv.date, hour: inv.hour, minute: inv.minute });
-      $("#proposal").hidden = false;
-      $("#proposal").textContent = inv.from + " đề xuất " + HN.fmtWhen(inv.date, inv.hour, inv.minute) + ". Cậu đổi được nha.";
-      $("#timeSub").textContent = "Giữ nguyên hoặc chọn giờ khác";
-    }
-    HN.calendar($("#rCal"), {
-      selected: HN.parseISO(ans.date),
-      onSelect(date) {
-        ans.date = HN.iso(date);
-        if (HN.isPast(ans.date, ans.hour, ans.minute ?? 0)) { ans.hour = null; ans.minute = null; tp.set(null, null); }
-        updateTime();
-      },
-    });
-    const tp = HN.timePicker($("#rHours"), $("#rMins"), {
-      hour: ans.hour, minute: ans.minute,
-      isHourDisabled: (h) => HN.isPast(ans.date, h, 30),
-      isMinuteDisabled: (h, m) => h != null && HN.isPast(ans.date, h, m),
-      onChange(h, m) { ans.hour = h; ans.minute = m; updateTime(); },
-    });
-    function updateTime() {
-      const ok = ans.date && ans.hour != null && ans.minute != null && !HN.isPast(ans.date, ans.hour, ans.minute);
-      $("#rWhen").textContent = ok ? "✓ " + HN.fmtWhen(ans.date, ans.hour, ans.minute) : "Chọn đủ ngày, giờ và phút";
-      $("#rWhen").classList.toggle("ok", !!ok);
-      $("#next3").disabled = !ok;
-      tp.render();
-    }
-    updateTime();
-    $("#next3").addEventListener("click", () => goTo(4));
-
-    /* N4 pick plans */
-    const offered = inv.plans.map(HN.planById).filter(Boolean);
-    if (offered.length === 1) ans.plans = [offered[0].id];
-    function renderPlans() {
-      const host = $("#planGrid");
-      host.replaceChildren();
-      offered.forEach((p) => {
-        const on = ans.plans.includes(p.id);
-        const b = el("button", "option" + (on ? " selected" : ""));
-        b.type = "button";
-        b.setAttribute("aria-pressed", String(on));
-        b.append(el("span", "badge", p.ico), document.createTextNode(p.name));
-        b.addEventListener("click", () => {
-          const set = new Set(ans.plans);
-          if (set.has(p.id)) set.delete(p.id); else set.add(p.id);
-          ans.plans = offered.filter((o) => set.has(o.id)).map((o) => o.id);
-          renderPlans();
-        });
-        host.append(b);
-      });
-      $("#next4").disabled = ans.plans.length === 0;
-    }
-    renderPlans();
-    ENTER[4] = () => gsap.fromTo("#planGrid > *", { y: 30, scale: 0.8, opacity: 0 }, { y: 0, scale: 1, opacity: 1, stagger: 0.06, duration: 0.45, ease: "back.out(2)", clearProps: "transform,opacity" });
-    $("#next4").addEventListener("click", () => goTo(5));
-
-    /* N5 name */
-    const rName = $("#rName");
-    rName.value = ans.name;
-    let touched = !!ans.name;
-    function updateName() {
-      $("#cName").textContent = HN.len(rName.value) + "/20";
-      const p = HN.checkText(rName.value, { max: 20, emptyMsg: "Cậu chưa nhập tên" });
-      const show = touched && p;
-      $("#fName").classList.toggle("invalid", !!show);
-      $("#hName").hidden = !show;
-      $("#hName").textContent = p;
-      $("#sendBtn").disabled = !!p;
-      ans.name = p ? "" : HN.clean(rName.value);
-    }
-    rName.addEventListener("input", () => { touched = true; updateName(); });
-    rName.addEventListener("blur", () => { touched = true; updateName(); });
-    updateName();
-    $("#sendBtn").addEventListener("click", () => {
-      if (!ans.name) return;
-      if (!PREVIEW && !DEMO_MODE && !IN_FRAME) {
-        HN.responses.add(inv.code, {
-          name: ans.name, date: ans.date, hour: ans.hour, minute: ans.minute, plans: ans.plans, dodges: ans.dodges,
-          changed: inv.timeMode === "fixed" && (ans.date !== inv.date || ans.hour !== inv.hour || ans.minute !== inv.minute),
-          at: new Date().toISOString(),
-        });
-      }
-      goTo(6);
-    });
-
-    /* N6 ticket */
+    /* N3 ticket */
     const ticketData = () => ({ from: inv.from, to: ans.name || greet, when: HN.fmtWhen(ans.date, ans.hour, ans.minute), plans: ans.plans, dodges: ans.dodges, code: inv.code });
-    ENTER[6] = () => {
+    ENTER[3] = () => {
       const tk = HN.ticket(ticketData());
       $("#rTicket").replaceChildren(tk);
       HN.tilt(tk, 12);
@@ -890,11 +895,11 @@
       fri.setDate(fri.getDate() + 6);
       const created = HN.iso(HN.today());
       return [
-        { code: "k3x9m2pq", name: "Thiệp gửi Lan", url: "", created, responses: [{ name: "Lan", date: HN.iso(sat), hour: 19, minute: 30, plans: ["trasua", "xemphim"], dodges: 7, changed: false }] },
+        { code: "k3x9m2pq", name: "Thiệp gửi Lan", url: "", created, responses: [{ name: "Lan", date: HN.iso(sat), hour: 19, minute: 30, plans: ["trasua", "xemphim"], dodges: HN.NO_LIMIT }] },
         { code: "p8wq4tzn", name: "Cuối tuần này đi chơi với tớ nha?", url: "", created, responses: [
-          { name: "Hà", date: HN.iso(sat), hour: 19, minute: 30, plans: ["lau"], dodges: 3, changed: true },
-          { name: "Vy", date: HN.iso(sun), hour: 9, minute: 0, plans: ["cafe", "daoho"], dodges: 0, changed: false },
-          { name: "Ngọc", date: HN.iso(fri), hour: 20, minute: 0, plans: ["karaoke"], dodges: 5, changed: false },
+          { name: "Hà", date: HN.iso(sat), hour: 19, minute: 30, plans: ["lau"], dodges: 3 },
+          { name: "Vy", date: HN.iso(sun), hour: 9, minute: 0, plans: ["cafe", "daoho"], dodges: 0 },
+          { name: "Ngọc", date: HN.iso(fri), hour: 20, minute: 0, plans: ["karaoke"], dodges: 5 },
         ] },
         { code: "z2rt7hkd", name: "Thiệp gửi Mai", url: "", created, responses: [] },
       ];
@@ -921,7 +926,6 @@
       top.append(el("b", null, String(r.name || "?")));
       const tags = el("span", "resp-tags");
       if (conf[key(r)] > 1) tags.append(el("span", "tag-red", "Trùng giờ"));
-      if (r.changed) tags.append(el("span", "tag-warn", "Đã đổi giờ"));
       top.append(tags);
       const chips = el("div", "chips-row");
       planNames(r.plans).forEach((p) => chips.append(el("i", null, p.ico + " " + p.name)));

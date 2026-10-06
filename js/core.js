@@ -160,22 +160,60 @@
     return { render, setSelected(d) { selected = d; if (d) view = new Date(d.getFullYear(), d.getMonth(), 1); render(); } };
   };
 
-  /* ---------- hour + minute chips ---------- */
+  /* ---------- hour + minute dropdowns (5 rows visible, scroll for the rest) ---------- */
   HN.timePicker = (hoursHost, minsHost, opts) => {
     let hour = opts.hour ?? null, minute = opts.minute ?? null;
-    function chip(text, on, disabled, click) {
-      const c = el("button", "chip" + (on ? " selected" : ""), text);
-      c.type = "button"; c.disabled = !!disabled; c.onclick = click;
-      return c;
+    const ITEM_H = 44;
+    function dropdown(host, label, placeholder, onPick) {
+      const wrap = el("div", "dd"), btn = el("button", "dd-btn"), list = el("div", "dd-list");
+      btn.type = "button";
+      btn.setAttribute("aria-haspopup", "listbox");
+      btn.setAttribute("aria-expanded", "false");
+      btn.setAttribute("aria-label", label);
+      list.setAttribute("role", "listbox");
+      list.hidden = true;
+      wrap.append(btn, list);
+      host.replaceChildren(wrap);
+      const close = () => { list.hidden = true; wrap.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); };
+      const open = () => {
+        list.hidden = false;
+        wrap.classList.add("open");
+        btn.setAttribute("aria-expanded", "true");
+        const sel = list.querySelector(".selected");
+        list.scrollTop = sel ? Math.max(0, sel.offsetTop - ITEM_H * 2) : 0;
+      };
+      btn.addEventListener("click", () => (list.hidden ? open() : close()));
+      wrap.addEventListener("keydown", (e) => { if (e.key === "Escape") { close(); btn.focus(); } });
+      const outside = (e) => {
+        if (!wrap.isConnected) { document.removeEventListener("pointerdown", outside); return; }
+        if (!wrap.contains(e.target)) close();
+      };
+      document.addEventListener("pointerdown", outside);
+      return {
+        set(items, value) {
+          list.replaceChildren();
+          let current = null;
+          items.forEach((it) => {
+            const on = it.value === value;
+            const b = el("button", "dd-item" + (on ? " selected" : ""), it.text);
+            b.type = "button";
+            b.disabled = !!it.disabled;
+            b.setAttribute("role", "option");
+            b.setAttribute("aria-selected", String(on));
+            b.addEventListener("click", () => { close(); onPick(it.value); });
+            list.append(b);
+            if (on) current = it;
+          });
+          btn.textContent = current ? current.text : placeholder;
+          btn.classList.toggle("placeholder", !current);
+        },
+      };
     }
+    const H = dropdown(hoursHost, "Giờ", "Chọn giờ", (v) => { hour = v; render(); if (opts.onChange) opts.onChange(hour, minute); });
+    const M = dropdown(minsHost, "Phút", "Chọn phút", (v) => { minute = v; render(); if (opts.onChange) opts.onChange(hour, minute); });
     function render() {
-      hoursHost.replaceChildren(); minsHost.replaceChildren();
-      for (let h = 0; h < 24; h++) {
-        hoursHost.append(chip(pad2(h), h === hour, opts.isHourDisabled && opts.isHourDisabled(h), () => { hour = h; render(); if (opts.onChange) opts.onChange(hour, minute); }));
-      }
-      [0, 30].forEach((m) => {
-        minsHost.append(chip(":" + pad2(m), m === minute, opts.isMinuteDisabled && opts.isMinuteDisabled(hour, m), () => { minute = m; render(); if (opts.onChange) opts.onChange(hour, minute); }));
-      });
+      H.set(Array.from({ length: 24 }, (_, h) => ({ value: h, text: pad2(h) + " giờ", disabled: !!(opts.isHourDisabled && opts.isHourDisabled(h)) })), hour);
+      M.set([0, 30].map((m) => ({ value: m, text: pad2(m) + " phút", disabled: !!(opts.isMinuteDisabled && opts.isMinuteDisabled(hour, m)) })), minute);
     }
     render();
     return { render, set(h, m) { hour = h; minute = m; render(); } };
@@ -205,16 +243,13 @@
     if (!o || typeof o !== "object" || o.v !== 1) return null;
     const str = (x) => (typeof x === "string" ? x : "");
     const from = HN.clean(str(o.f)), to = HN.clean(str(o.t)), message = HN.clean(str(o.m));
-    if (HN.checkText(from, { max: 20 }) || HN.checkText(to, { required: false, max: 20 }) || HN.checkText(message, { max: 100 })) return null;
+    if (HN.checkText(from, { max: 20 }) || HN.checkText(to, { max: 20 }) || HN.checkText(message, { max: 100 })) return null;
     if (typeof o.c !== "string" || !/^[a-z0-9]{6,16}$/.test(o.c)) return null;
     if (!Array.isArray(o.p) || o.p.length > HN.PLANS.length) return null;
     const plans = HN.PLANS.filter((p) => o.p.includes(p.id)).map((p) => p.id);
     if (!plans.length) return null;
-    const inv = { code: o.c, from, to, message, plans, timeMode: "recipient", date: null, hour: null, minute: null };
-    if (o.tm === 1 && HN.validDate(o.d) && Number.isInteger(o.h) && o.h >= 0 && o.h <= 23 && (o.i === 0 || o.i === 30) && !HN.isPast(o.d, o.h, o.i)) {
-      Object.assign(inv, { timeMode: "fixed", date: o.d, hour: o.h, minute: o.i });
-    }
-    return inv;
+    if (o.tm !== 1 || !HN.validDate(o.d) || !Number.isInteger(o.h) || o.h < 0 || o.h > 23 || (o.i !== 0 && o.i !== 30) || HN.isPast(o.d, o.h, o.i)) return null;
+    return { code: o.c, from, to, message, plans, timeMode: "fixed", date: o.d, hour: o.h, minute: o.i };
   };
   HN.baseUrl = () => location.href.split("#")[0];
   HN.inviteUrl = (inv) => HN.baseUrl() + "#/n/" + HN.encodeInvite(inv);
@@ -274,11 +309,6 @@
       if (frame >= total) { clearInterval(id); node.textContent = final; }
     }, 38);
     HN.onLeave(() => clearInterval(id));
-  };
-  HN.countUp = (node) => {
-    const to = Number(node.dataset.count) || 0;
-    const o = { v: 0 };
-    gsap.to(o, { v: to, duration: 1.4, ease: "power2.out", onUpdate: () => { node.textContent = String(Math.round(o.v)); } });
   };
 
   /* ---------- scroll reveal ---------- */
@@ -448,7 +478,7 @@
     r.append(b, t);
     return r;
   }
-  HN.dodgeText = (n) => (n ? "Bấm YES sau " + n + " lần né Không" : "Bấm YES ngay lần đầu");
+  HN.dodgeText = (n) => (n >= HN.NO_LIMIT ? "Né " + n + " lần, YES tự bấm luôn" : n ? "Bấm YES sau " + n + " lần né Không" : "Bấm YES ngay lần đầu");
   HN.ticket = (t) => {
     const tk = el("div", "ticket");
     tk.append(el("span", "holo"));

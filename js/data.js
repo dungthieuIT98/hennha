@@ -2,17 +2,12 @@
 window.HN = {
   DOMAIN: "dungthieuit98.github.io/hennha",
   PAYMENT_ENABLED: false,
-  NO_LIMIT: 7,
+  NO_LIMIT: 4,
 
   TEMPLATES: [
     { id: "t1", text: "{to} ơi, cuối tuần này đi chơi với tớ nha?" },
     { id: "t2", text: "Tớ có một kèo hẹn, chỉ thiếu mỗi {to} thôi. Đi không?" },
-    { id: "t3", text: "Nói thật nha, tớ muốn rủ {to} đi chơi lâu rồi đó." },
-    { id: "t4", text: "Hôm nào rảnh, {to} cho tớ một buổi hẹn được không?" },
     { id: "t5", text: "Tớ bao, {to} chỉ cần gật đầu thôi. Đi chơi nha?" },
-    { id: "t6", text: "Nghe nói đi chơi với tớ vui lắm. {to} thử một lần không?" },
-    { id: "t7", text: "Lịch tuần này của {to} còn trống chỗ cho tớ không?" },
-    { id: "t8", text: "Không có gì đâu, chỉ là muốn rủ {to} đi chơi thôi." },
   ],
 
   PLANS: [
@@ -46,16 +41,13 @@ window.HN = {
   SENDER_STEPS: [
     { n: "01", ico: "🎬", title: "Nhân vật chính", text: "Nhập tên bạn và tên người ấy. Tên hiện ngay trên phong bì." },
     { n: "02", ico: "💬", title: "Lời thoại", text: "Chọn một câu rủ có sẵn rồi sửa cho đúng giọng bạn." },
-    { n: "03", ico: "🎟️", title: "Suất chiếu", text: "Chọn sẵn ngày giờ, hoặc để người ấy tự chọn." },
-    { n: "04", ico: "🍿", title: "Kịch bản", text: "Đưa ra menu kèo: trà sữa, xem phim, dạo hồ..." },
+    { n: "03", ico: "🗓️", title: "Thời gian", text: "Chọn sẵn ngày giờ hẹn, người ấy chỉ cần gật đầu." },
+    { n: "04", ico: "🍿", title: "Kịch bản", text: "Chọn các kèo sẽ hiện trên vé: trà sữa, xem phim, dạo hồ..." },
   ],
   RECEIVER_STEPS: [
     { n: "N1", ico: "💌", title: "Mở thư", text: "Một chạm là mở, thấy lời mời trong vài giây." },
-    { n: "N2", ico: "🙈", title: "YES hay Không", text: "Nút Không né liên tục, 7 lần thì bỏ chạy." },
-    { n: "N3", ico: "📅", title: "Chọn giờ", text: "Giữ giờ bạn đề xuất hoặc đổi giờ khác." },
-    { n: "N4", ico: "🧋", title: "Chọn kèo", text: "Chọn một hoặc nhiều kèo trong menu của bạn." },
-    { n: "N5", ico: "✍️", title: "Để lại tên", text: "Để bạn biết ai đã nhận lời." },
-    { n: "N6", ico: "🎫", title: "Nhận vé", text: "Vé hai người 9:16 để lưu ảnh khoe, thêm vào lịch." },
+    { n: "N2", ico: "🙈", title: "YES hay Không", text: "Nút Không né liên tục, tới lần thứ 4 thì YES tự bấm luôn." },
+    { n: "N3", ico: "🎫", title: "Nhận vé", text: "Giờ và kèo bạn đã chọn sẵn nằm trên vé hai người 9:16, lưu ảnh khoe hoặc thêm vào lịch." },
   ],
 
   PRICING: [
