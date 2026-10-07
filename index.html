@@ -46,17 +46,17 @@
     </div>
   </div>
   <div class="hero-stage">
-    <div class="orbit o1"><div class="orbit-ring"><i class="p1"><span>🧋</span></i><i class="p2"><span>🎬</span></i></div></div>
-    <div class="orbit o2"><div class="orbit-ring"><i class="p1"><span>🎡</span></i><i class="p2"><span>🍲</span></i><i class="p3"><span>📸</span></i></div></div>
+    <div class="orbit o1" aria-hidden="true"><div class="orbit-ring"><i class="p1"><span>🧋</span></i><i class="p2"><span>🎬</span></i></div></div>
+    <div class="orbit o2" aria-hidden="true"><div class="orbit-ring"><i class="p1"><span>🎡</span></i><i class="p2"><span>🍲</span></i><i class="p3"><span>📸</span></i></div></div>
     <div class="stage-card glass glow-border tilt">
       <div class="lottie lt-fill" data-lottie="hearts" data-loop="1" data-fit="slice"></div>
       <span class="stage-eyebrow">Có thư cho cậu</span>
-      <div class="stage-env" id="heroEnv"></div>
-      <span class="stage-hint">Chạm con dấu để mở thử</span>
+      <div class="love" id="heroLove"><svg class="bloom" id="heroBloom" viewBox="-20 -20 440 400" aria-hidden="true"></svg></div>
+      <span class="stage-hint">Chạm trái tim để mở thử</span>
     </div>
-    <div class="float-badge fb1"><span>YES ✓</span></div>
-    <div class="float-badge fb2"><span>Không?? 🙈</span></div>
-    <div class="float-badge fb3"><span>🎫 Vé cho hai người</span></div>
+    <div class="float-badge fb1" aria-hidden="true"><span>YES ✓</span></div>
+    <div class="float-badge fb2" aria-hidden="true"><span>Không?? 🙈</span></div>
+    <div class="float-badge fb3" aria-hidden="true"><span>🎫 Vé cho hai người</span></div>
   </div>
 </section>
 
@@ -74,10 +74,40 @@
   <div class="demo glass glow-border" data-reveal>
     <div class="demo-stage" id="dQ">
       <p class="runaway" id="dRun" hidden>Nút Không xin nghỉ việc. YES tự bấm giúp rồi nhé!</p>
+      <div class="card-deco" aria-hidden="true">
+        <svg class="fl-defs" width="0" height="0" focusable="false">
+          <defs>
+            <g id="fl-leaf" fill="currentColor" fill-opacity=".5"><path d="M0 0C7-8 20-8 30 0C20 8 7 8 0 0Z"/></g>
+            <g id="fl-flower" fill="currentColor" fill-opacity=".72">
+              <path d="M0 0C-8-7-8-22 0-26C8-22 8-7 0 0Z"/>
+              <path d="M0 0C-8-7-8-22 0-26C8-22 8-7 0 0Z" transform="rotate(72)"/>
+              <path d="M0 0C-8-7-8-22 0-26C8-22 8-7 0 0Z" transform="rotate(144)"/>
+              <path d="M0 0C-8-7-8-22 0-26C8-22 8-7 0 0Z" transform="rotate(216)"/>
+              <path d="M0 0C-8-7-8-22 0-26C8-22 8-7 0 0Z" transform="rotate(288)"/>
+              <circle r="4.5" fill="#fff1d6" fill-opacity=".85"/>
+            </g>
+            <g id="fl-branch">
+              <path d="M2 2Q70 20 118 96M2 2Q20 70 36 128" fill="none" stroke="#a8d8c8" stroke-width="1.4" stroke-linecap="round" stroke-opacity=".45"/>
+              <use href="#fl-leaf" transform="translate(35 15) rotate(-23)" color="#a8d8c8"/>
+              <use href="#fl-leaf" transform="translate(35 15) rotate(77)" color="#a8d8c8"/>
+              <use href="#fl-leaf" transform="translate(65 34) rotate(94)" color="#a8d8c8"/>
+              <use href="#fl-leaf" transform="translate(93 62) rotate(-1)" color="#a8d8c8"/>
+              <use href="#fl-leaf" transform="translate(19 67) rotate(129) scale(.8)" color="#a8d8c8"/>
+              <use href="#fl-leaf" transform="translate(29 104) rotate(25) scale(.7)" color="#a8d8c8"/>
+              <use href="#fl-flower" transform="translate(118 96) scale(.85)" color="#ffb8cc"/>
+              <use href="#fl-flower" transform="translate(36 128) scale(.5)" color="#d4c1f5"/>
+            </g>
+          </defs>
+        </svg>
+        <i class="card-frame"></i>
+        <span class="fl-corner c1"><svg class="fl-svg" viewBox="0 0 150 150"><use href="#fl-branch"/></svg></span>
+        <span class="fl-corner c4"><svg class="fl-svg" viewBox="0 0 150 150"><use href="#fl-branch"/></svg></span>
+      </div>
+      <span class="eyebrow card-chip"><svg class="chip-fl" viewBox="-30 -30 60 60" aria-hidden="true"><use href="#fl-flower" color="#ffb8cc"/></svg> Thiệp mời từ Minh</span>
       <h3 class="q">Cậu ơi, cuối tuần này đi chơi với tớ nha?</h3>
       <div class="btns">
         <button class="btn btn-lg" id="dYes" type="button">YES</button>
-        <button class="btn btn-ghost btn-lg" id="dNo" type="button" tabindex="-1">Không</button>
+        <button class="btn btn-ghost btn-lg" id="dNo" type="button">Không</button>
       </div>
     </div>
     <div class="demo-stage" id="dDone" hidden>
@@ -97,10 +127,10 @@
     <h2>Bốn cảnh để tạo, <span class="grad-text">ba cảnh</span> để nhận lời</h2>
     <p>Không cần đăng nhập, không cần cài app. Gửi link qua Zalo hoặc Messenger là xong.</p>
   </div>
-  <div class="seg" role="tablist" data-reveal>
+  <div class="seg" role="group" aria-label="Xem theo vai" data-reveal>
     <span class="seg-ind" aria-hidden="true"></span>
-    <button class="seg-tab" type="button" role="tab" aria-selected="true" data-tab="sender">Bạn làm</button>
-    <button class="seg-tab" type="button" role="tab" aria-selected="false" data-tab="receiver">Người ấy thấy</button>
+    <button class="seg-tab" type="button" aria-pressed="true" aria-controls="stepsSender" data-tab="sender">Bạn làm</button>
+    <button class="seg-tab" type="button" aria-pressed="false" aria-controls="stepsReceiver" data-tab="receiver">Người ấy thấy</button>
   </div>
   <div class="steps four" id="stepsSender" data-reveal-stagger></div>
   <div class="steps three" id="stepsReceiver" hidden></div>
@@ -111,9 +141,9 @@
     <span class="eyebrow">Cảnh kết</span>
     <h2>Một tấm vé, đủ để <span class="grad-text">khoe cả story</span></h2>
     <ul class="ticks">
-      <li><span class="badge">📸</span><div><b>Lưu ảnh khoe</b><span>Ảnh dọc 9:16, nhấn giữ là lưu, kể cả trong Zalo hay Messenger.</span></div></li>
-      <li><span class="badge">📅</span><div><b>Thêm vào lịch</b><span>Google Calendar hoặc Lịch iPhone, không cần email.</span></div></li>
-      <li><span class="badge">💌</span><div><b>Quản lý phản hồi</b><span>Xem ai đã nhận lời, ngày nào bị trùng lịch.</span></div></li>
+      <li><span class="badge" aria-hidden="true">📸</span><div><b>Lưu ảnh khoe</b><span>Ảnh dọc 9:16, nhấn giữ là lưu, kể cả trong Zalo hay Messenger.</span></div></li>
+      <li><span class="badge" aria-hidden="true">📅</span><div><b>Thêm vào lịch</b><span>Google Calendar hoặc Lịch iPhone, không cần email.</span></div></li>
+      <li><span class="badge" aria-hidden="true">💌</span><div><b>Quản lý phản hồi</b><span>Xem ai đã nhận lời, ngày nào bị trùng lịch.</span></div></li>
     </ul>
   </div>
   <div class="ticket-host" id="homeTicket" data-reveal></div>
@@ -149,13 +179,13 @@
         <p class="sub">Tên hai bạn sẽ hiện ngay trên phong bì</p>
         <div class="field" id="fFrom">
           <label for="nameFrom">Tên bạn</label>
-          <div class="input-wrap"><input id="nameFrom" type="text" maxlength="20" autocomplete="off" placeholder="Ví dụ: Minh"><span class="count" id="cFrom">0/20</span></div>
-          <p class="hint error" id="hFrom" hidden></p>
+          <div class="input-wrap"><input id="nameFrom" type="text" maxlength="20" autocomplete="off" placeholder="Ví dụ: Minh" aria-required="true" aria-describedby="hFrom cFrom"><span class="count" id="cFrom">0/20</span></div>
+          <p class="hint error" id="hFrom" aria-live="polite" hidden></p>
         </div>
         <div class="field" id="fTo">
           <label for="nameTo">Tên người ấy</label>
-          <div class="input-wrap"><input id="nameTo" type="text" maxlength="20" autocomplete="off" placeholder="Ví dụ: Lan"><span class="count" id="cTo">0/20</span></div>
-          <p class="hint error" id="hTo" hidden></p>
+          <div class="input-wrap"><input id="nameTo" type="text" maxlength="20" autocomplete="off" placeholder="Ví dụ: Lan" aria-required="true" aria-describedby="hTo cTo"><span class="count" id="cTo">0/20</span></div>
+          <p class="hint error" id="hTo" aria-live="polite" hidden></p>
         </div>
         <div class="nav"><a class="btn btn-ghost" href="#/">Trang chủ</a><button class="btn" id="next1" type="button" disabled>Tiếp</button></div>
       </div>
@@ -168,8 +198,8 @@
         <div class="choices" id="templates"></div>
         <div class="field" id="fMsg">
           <label for="msg">Câu rủ của bạn</label>
-          <div class="input-wrap"><textarea class="input" id="msg" maxlength="100" rows="3"></textarea><span class="count bottom" id="cMsg">0/100</span></div>
-          <p class="hint error" id="hMsg" hidden></p>
+          <div class="input-wrap"><textarea class="input" id="msg" maxlength="100" rows="3" aria-required="true" aria-describedby="hMsg cMsg"></textarea><span class="count bottom" id="cMsg">0/100</span></div>
+          <p class="hint error" id="hMsg" aria-live="polite" hidden></p>
         </div>
         <div class="nav"><button class="btn btn-ghost" type="button" data-back>Quay lại</button><button class="btn" id="next2" type="button" disabled>Tiếp</button></div>
       </div>
@@ -194,12 +224,12 @@
         <span class="eyebrow">Cảnh 4 · Kịch bản</span>
         <h2>Hẹn nhau đi đâu?</h2>
         <p class="sub">Chọn các kèo bạn muốn rủ, chúng sẽ hiện trên vé hai người</p>
-        <div class="seg seg-plans" role="tablist">
-          <button class="seg-tab" type="button" role="tab" aria-selected="true" data-ptab="an">Ăn uống <span id="cntAn"></span></button>
-          <button class="seg-tab" type="button" role="tab" aria-selected="false" data-ptab="choi">Đi chơi <span id="cntChoi"></span></button>
+        <div class="seg seg-plans" role="group" aria-label="Loại kèo">
+          <button class="seg-tab" type="button" aria-pressed="true" aria-controls="planList" data-ptab="an">Ăn uống <span id="cntAn"></span></button>
+          <button class="seg-tab" type="button" aria-pressed="false" aria-controls="planList" data-ptab="choi">Đi chơi <span id="cntChoi"></span></button>
         </div>
         <div class="opt-grid plan-scroll" id="planList"></div>
-        <p class="counter" id="counter"></p>
+        <p class="counter" id="counter" aria-live="polite"></p>
         <div class="nav"><button class="btn btn-ghost" type="button" data-back>Quay lại</button><button class="btn" id="next4" type="button" disabled>Chiếu thử</button></div>
       </div>
 
@@ -221,7 +251,8 @@
           <label class="check"><input type="checkbox" id="age"> <span>Tôi đủ 16 tuổi</span></label>
           <label class="check"><input type="checkbox" id="terms"> <span>Tôi đồng ý <a href="#/create" data-soon="Điều khoản">Điều khoản</a> và <a href="#/create" data-soon="Chính sách quyền riêng tư">Chính sách quyền riêng tư</a></span></label>
         </div>
-        <div class="nav"><button class="btn btn-ghost" type="button" data-back>Quay lại</button><button class="btn" id="createBtn" type="button" disabled>Tạo link</button></div>
+        <p class="hint" id="hCreate">Tick cả hai ô phía trên để tạo link</p>
+        <div class="nav"><button class="btn btn-ghost" type="button" data-back>Quay lại</button><button class="btn" id="createBtn" type="button" aria-describedby="hCreate" disabled>Tạo link</button></div>
       </div>
 
       <div class="cstep" data-step="7">
@@ -234,8 +265,8 @@
         <div class="linkbox"><span id="link"></span><button class="btn btn-ghost btn-sm" id="copyLink" type="button">Copy</button></div>
         <div class="field" id="fShare">
           <label for="shareMsg">Lời nhắn gửi kèm</label>
-          <div class="input-wrap"><textarea class="input" id="shareMsg" maxlength="100" rows="2">Tớ làm cái này cho cậu nè, mở xem đi</textarea><span class="count bottom" id="cShare"></span></div>
-          <p class="hint" id="hShare"></p>
+          <div class="input-wrap"><textarea class="input" id="shareMsg" maxlength="100" rows="2" aria-describedby="hShare cShare">Tớ làm cái này cho cậu nè, mở xem đi</textarea><span class="count bottom" id="cShare"></span></div>
+          <p class="hint" id="hShare" aria-live="polite"></p>
         </div>
         <button class="btn btn-block btn-lg" id="shareBtn" type="button">Chia sẻ</button>
         <div class="fb glass-inner" id="fb">
@@ -261,23 +292,6 @@
       <span class="eyebrow" id="loveEyebrow">Có thư cho cậu</span>
       <div class="love" id="love">
         <svg class="bloom" id="bloom" viewBox="-20 -20 440 400" aria-hidden="true"></svg>
-        <div class="wenv" id="wenv">
-          <div class="wenv-back"></div>
-          <div class="wenv-letter" id="wLetter"><span>Hẹn nha?</span></div>
-          <div class="wenv-front"><span class="wenv-to" id="wTo"></span></div>
-          <div class="wenv-flap" id="wFlap"><i></i></div>
-          <button class="nheart beating" id="heartBtn" type="button" aria-label="Mở thư">
-            <svg viewBox="0 0 64 60" aria-hidden="true">
-              <defs>
-                <linearGradient id="nhFill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".45" stop-color="#ff7eb0" stop-opacity=".55"/><stop offset="1" stop-color="#a855f7" stop-opacity=".75"/></linearGradient>
-                <linearGradient id="nhLine" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4f8b"/><stop offset=".55" stop-color="#d946ef"/><stop offset="1" stop-color="#22d3ee"/></linearGradient>
-              </defs>
-              <path class="nh-body" d="M32 56C18 46 4 36 4 21 4 11 11 4 20 4c5 0 9.5 2.6 12 6.6C34.5 6.6 39 4 44 4c9 0 16 7 16 17 0 15-14 25-28 35z"/>
-              <path class="nh-inner" d="M32 49C21 41 11 33 11 22c0-6.5 4.5-11 10-11 4.2 0 7.6 2.6 9 6.4h4c1.4-3.8 4.8-6.4 9-6.4 5.5 0 10 4.5 10 11 0 11-10 19-21 27z"/>
-              <ellipse class="nh-gloss" cx="19" cy="15" rx="8" ry="4.5" transform="rotate(-32 19 15)"/>
-            </svg>
-          </button>
-        </div>
         <p class="love-hint" id="loveHint">Chạm vào trái tim để mở thư</p>
       </div>
       <div class="dash" id="dash" hidden>
@@ -345,10 +359,10 @@
     <p class="sub">Thiệp được lưu trên trình duyệt này. Mở bằng trình duyệt khác sẽ không thấy.</p>
   </div>
   <div class="q-bar">
-    <div class="seg" role="tablist">
+    <div class="seg" role="group" aria-label="Chế độ xem">
       <span class="seg-ind" aria-hidden="true"></span>
-      <button class="seg-tab" type="button" role="tab" aria-selected="true" data-tab="list">Danh sách thiệp</button>
-      <button class="seg-tab" type="button" role="tab" aria-selected="false" data-tab="cal">Lịch hẹn</button>
+      <button class="seg-tab" type="button" aria-pressed="true" aria-controls="paneList" data-tab="list">Danh sách thiệp</button>
+      <button class="seg-tab" type="button" aria-pressed="false" aria-controls="paneCal" data-tab="cal">Lịch hẹn</button>
     </div>
     <button class="link" id="sampleBtn" type="button">Xem dữ liệu mẫu</button>
   </div>

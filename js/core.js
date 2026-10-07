@@ -129,8 +129,17 @@
       const title = el("strong", null, "Tháng " + (view.getMonth() + 1) + ", " + view.getFullYear());
       prev.disabled = !opts.allowAll && view <= new Date(min.getFullYear(), min.getMonth(), 1);
       next.disabled = !opts.allowAll && view >= new Date(max.getFullYear(), max.getMonth(), 1);
-      prev.onclick = () => { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); render(-1); };
-      next.onclick = () => { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); render(1); };
+      // render() rebuilds the grid, so put focus back on the matching control
+      const nav = (dir) => {
+        view = new Date(view.getFullYear(), view.getMonth() + dir, 1);
+        render(dir);
+        const [p, n] = $$(".cal-nav", host);
+        const again = dir < 0 ? p : n;
+        const target = again.disabled ? $(".cal-day:not(:disabled)", host) : again;
+        if (target) target.focus({ preventScroll: true });
+      };
+      prev.onclick = () => nav(-1);
+      next.onclick = () => nav(1);
       head.append(prev, title, next);
       const grid = el("div", "cal-grid");
       ["T2", "T3", "T4", "T5", "T6", "T7", "CN"].forEach((t) => grid.append(el("div", "cal-dow", t)));
@@ -142,12 +151,18 @@
         const date = new Date(view.getFullYear(), view.getMonth(), d);
         const iso = HN.iso(date);
         const b = el("button", "cal-day", String(d)); b.type = "button";
-        if (iso === todayIso) b.classList.add("today");
-        if (selected && iso === HN.iso(selected)) b.classList.add("selected");
-        if (opts.events && opts.events[iso]) { b.classList.add("has-event"); if (opts.events[iso].conflict) b.classList.add("conflict"); }
+        const isSel = !!selected && iso === HN.iso(selected);
+        const ev = opts.events && opts.events[iso];
+        b.setAttribute("aria-label", HN.fmtDate(date) + (ev ? (ev.conflict ? ", có hẹn trùng giờ" : ", có hẹn") : ""));
+        b.setAttribute("aria-pressed", String(isSel));
+        if (iso === todayIso) { b.classList.add("today"); b.setAttribute("aria-current", "date"); }
+        if (isSel) b.classList.add("selected");
+        if (ev) { b.classList.add("has-event"); if (ev.conflict) b.classList.add("conflict"); }
         if (!opts.allowAll && (date < min || date > max)) b.disabled = true;
         b.onclick = () => {
           selected = date; render();
+          const again = $(".cal-day.selected", host);
+          if (again) again.focus({ preventScroll: true });
           if (opts.onSelect) opts.onSelect(date);
         };
         grid.append(b);
@@ -164,13 +179,15 @@
   HN.timePicker = (hoursHost, minsHost, opts) => {
     let hour = opts.hour ?? null, minute = opts.minute ?? null;
     const ITEM_H = 44;
+    // disclosure of plain buttons: Tab/Enter work natively, no listbox role to fake arrow-key behaviour for
     function dropdown(host, label, placeholder, onPick) {
       const wrap = el("div", "dd"), btn = el("button", "dd-btn"), list = el("div", "dd-list");
+      list.id = "dd-" + HN.randomCode(6);
       btn.type = "button";
-      btn.setAttribute("aria-haspopup", "listbox");
       btn.setAttribute("aria-expanded", "false");
-      btn.setAttribute("aria-label", label);
-      list.setAttribute("role", "listbox");
+      btn.setAttribute("aria-controls", list.id);
+      list.setAttribute("role", "group");
+      list.setAttribute("aria-label", label);
       list.hidden = true;
       wrap.append(btn, list);
       host.replaceChildren(wrap);
@@ -184,6 +201,7 @@
       };
       btn.addEventListener("click", () => (list.hidden ? open() : close()));
       wrap.addEventListener("keydown", (e) => { if (e.key === "Escape") { close(); btn.focus(); } });
+      wrap.addEventListener("focusout", (e) => { if (e.relatedTarget && !wrap.contains(e.relatedTarget)) close(); });
       const outside = (e) => {
         if (!wrap.isConnected) { document.removeEventListener("pointerdown", outside); return; }
         if (!wrap.contains(e.target)) close();
@@ -198,13 +216,13 @@
             const b = el("button", "dd-item" + (on ? " selected" : ""), it.text);
             b.type = "button";
             b.disabled = !!it.disabled;
-            b.setAttribute("role", "option");
-            b.setAttribute("aria-selected", String(on));
-            b.addEventListener("click", () => { close(); onPick(it.value); });
+            b.setAttribute("aria-pressed", String(on));
+            b.addEventListener("click", () => { close(); onPick(it.value); btn.focus({ preventScroll: true }); });
             list.append(b);
             if (on) current = it;
           });
           btn.textContent = current ? current.text : placeholder;
+          btn.setAttribute("aria-label", label + ": " + (current ? current.text : placeholder));
           btn.classList.toggle("placeholder", !current);
         },
       };
@@ -269,13 +287,44 @@
     rendererSettings: { preserveAspectRatio: "xMidYMid " + fit },
   });
   HN.mountLotties = (root) => {
+    const loops = new Map();
     $$("[data-lottie]", root).forEach((n) => {
       if (n.dataset.mounted || !window.LOTTIE[n.dataset.lottie]) return;
       n.dataset.mounted = "1";
-      const a = HN.lottie(n, n.dataset.lottie, n.dataset.loop === "1", n.dataset.fit);
-      if (reduce) a.goToAndStop(Math.floor(a.totalFrames / 3), true); else a.play();
+      n.setAttribute("aria-hidden", "true");
+      const loop = n.dataset.loop === "1";
+      const a = HN.lottie(n, n.dataset.lottie, loop, n.dataset.fit);
+      if (reduce) a.goToAndStop(Math.floor(a.totalFrames / 3), true);
+      else if (loop && "IntersectionObserver" in window) loops.set(n, a);
+      else a.play();
       HN.onLeave(() => a.destroy());
     });
+    if (!loops.size) return;
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+      const a = loops.get(e.target);
+      if (e.isIntersecting) a.play(); else a.pause();
+    }));
+    loops.forEach((_, n) => io.observe(n));
+    HN.onLeave(() => io.disconnect());
+  };
+
+  // CSS loops get .paused (see app.css); GSAP loops passed alongside a node pause with it
+  HN.pauseOffscreen = (pairs) => {
+    if (!("IntersectionObserver" in window)) return;
+    const map = new Map(pairs.filter(([n]) => n));
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+      e.target.classList.toggle("paused", !e.isIntersecting);
+      (map.get(e.target) || []).forEach((t) => t && t.paused(!e.isIntersecting));
+    }));
+    map.forEach((_, n) => io.observe(n));
+    HN.onLeave(() => io.disconnect());
+  };
+
+  HN.focusHeading = (scope) => {
+    const h = $("h1, h2", scope);
+    if (!h) return;
+    h.tabIndex = -1;
+    h.focus({ preventScroll: true });
   };
 
   /* ---------- text effects ---------- */
@@ -284,7 +333,7 @@
   HN.split = (node) => {
     const text = node.textContent.trim();
     node.textContent = "";
-    node.setAttribute("aria-label", text);
+    node.append(el("span", "sr-only", text));
     const words = text.split(/\s+/);
     words.forEach((w, i) => {
       const ws = el("span", "w");
@@ -399,91 +448,161 @@
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => HN.toast("Không copy được, cậu giữ vào link để copy nhé"));
     else HN.toast("Trình duyệt không cho copy tự động");
   };
-  HN.sheet = (build) => {
-    const back = el("div", "sheet-backdrop");
-    const sh = el("div", "sheet glass");
-    sh.setAttribute("role", "dialog");
-    sh.setAttribute("aria-modal", "true");
-    back.append(sh);
-    const close = () => {
-      document.removeEventListener("keydown", onKey);
-      gsap.to(sh, { y: 60, autoAlpha: 0, duration: 0.25, ease: "power2.in" });
-      gsap.to(back, { autoAlpha: 0, duration: 0.25, onComplete: () => back.remove() });
+  // opacity, not autoAlpha: visibility:hidden would drop the focus showModal() just placed inside
+  function modal(dlg, leave) {
+    let closing = false;
+    const close = (then) => {
+      if (closing) return;
+      closing = true;
+      dlg.classList.add("closing");
+      gsap.to(dlg, Object.assign({ opacity: 0, duration: 0.25, ease: "power2.in" }, leave, {
+        onComplete: () => { dlg.close(); dlg.remove(); if (typeof then === "function") then(); },
+      }));
     };
-    const onKey = (e) => { if (e.key === "Escape") close(); };
-    back.addEventListener("click", (e) => { if (e.target === back) close(); });
-    document.addEventListener("keydown", onKey);
-    build(sh, close);
-    document.body.append(back);
-    gsap.fromTo(back, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2 });
-    gsap.fromTo(sh, { y: 80, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.45, ease: "back.out(1.5)" });
-    const f = $("button, a", sh);
-    if (f) f.focus({ preventScroll: true });
+    dlg.addEventListener("cancel", (e) => { e.preventDefault(); close(); });
+    dlg.addEventListener("click", (e) => {
+      if (e.target !== dlg) return;
+      const r = dlg.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) close();
+    });
+    document.body.append(dlg);
+    dlg.showModal();
+    return close;
+  }
+  HN.sheet = (build) => {
+    const sh = el("dialog", "sheet glass");
+    let close = () => {};
+    build(sh, (then) => close(then));
+    const h = $("h3", sh);
+    if (h) { h.id = "sheet-" + HN.randomCode(6); sh.setAttribute("aria-labelledby", h.id); }
+    close = modal(sh, { y: 60 });
+    gsap.fromTo(sh, { y: 80, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "back.out(1.5)" });
     return close;
   };
 
-  /* ---------- envelope ---------- */
-  function heartSvg() {
-    const ns = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(ns, "svg");
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("aria-hidden", "true");
-    const p = document.createElementNS(ns, "path");
-    p.setAttribute("d", "M12 21c-4.8-3.4-8-6.2-8-9.4A4.3 4.3 0 0 1 12 9a4.3 4.3 0 0 1 8 2.6c0 3.2-3.2 6-8 9.4z");
-    svg.append(p);
+  /* ---------- love letter: white envelope + glass neon heart (home hero and N1) ---------- */
+  const SVGNS = "http://www.w3.org/2000/svg";
+  function sv(tag, attrs, parent) {
+    const n = document.createElementNS(SVGNS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.append(n);
+    return n;
+  }
+  function gradient(defs, tag, id, attrs, stops) {
+    const g = sv(tag, Object.assign({ id }, attrs), defs);
+    stops.forEach(([o, c, a]) => sv("stop", a == null ? { offset: o, "stop-color": c } : { offset: o, "stop-color": c, "stop-opacity": a }, g));
+  }
+  function neonHeart() {
+    const svg = sv("svg", { viewBox: "0 0 64 60", "aria-hidden": "true" });
+    const defs = sv("defs", {}, svg);
+    gradient(defs, "linearGradient", "nhFill", { x1: 0, y1: 0, x2: 1, y2: 1 }, [[0, "#fff", 0.75], [0.45, "#ff7eb0", 0.55], [1, "#a855f7", 0.75]]);
+    gradient(defs, "linearGradient", "nhLine", { x1: 0, y1: 0, x2: 1, y2: 1 }, [[0, "#ff4f8b"], [0.55, "#d946ef"], [1, "#22d3ee"]]);
+    sv("path", { class: "nh-body", d: "M32 56C18 46 4 36 4 21 4 11 11 4 20 4c5 0 9.5 2.6 12 6.6C34.5 6.6 39 4 44 4c9 0 16 7 16 17 0 15-14 25-28 35z" }, svg);
+    sv("path", { class: "nh-inner", d: "M32 49C21 41 11 33 11 22c0-6.5 4.5-11 10-11 4.2 0 7.6 2.6 9 6.4h4c1.4-3.8 4.8-6.4 9-6.4 5.5 0 10 4.5 10 11 0 11-10 19-21 27z" }, svg);
+    sv("ellipse", { class: "nh-gloss", cx: 19, cy: 15, rx: 8, ry: 4.5, transform: "rotate(-32 19 15)" }, svg);
     return svg;
   }
-  HN.envelope = ({ to, from, letter = "Hẹn nha?" }) => {
-    const env = el("div", "env");
-    const paper = el("div", "env-letter");
+  HN.loveEnvelope = ({ to, letter = "Hẹn nha?" }) => {
+    const env = el("div", "wenv");
+    const paper = el("div", "wenv-letter");
     paper.append(el("span", null, letter));
-    const label = el("div", "env-label");
-    const t = el("div", "env-to");
-    t.append("Gửi ", el("span", "env-to-name", to), ",");
-    const f = el("div", "env-from");
-    f.append("từ ", el("span", "env-from-name", from));
-    label.append(t, f);
-    const seal = el("button", "env-seal");
-    seal.type = "button";
-    seal.setAttribute("aria-label", "Mở thư");
-    seal.append(heartSvg());
-    env.append(el("div", "env-back"), paper, el("div", "env-front"), label, el("div", "env-flap"), seal);
+    const front = el("div", "wenv-front");
+    front.append(el("span", "wenv-to", "Gửi " + to));
+    const flap = el("div", "wenv-flap");
+    flap.append(el("i"));
+    const heart = el("button", "nheart beating");
+    heart.type = "button";
+    heart.setAttribute("aria-label", "Mở thư");
+    heart.append(neonHeart());
+    env.append(el("div", "wenv-back"), paper, front, flap, heart);
     return env;
   };
-  HN.openEnvelope = (env) => {
-    const seal = $(".env-seal", env), flap = $(".env-flap", env), paper = $(".env-letter", env);
+  HN.openLove = (env) => {
+    const heart = $(".nheart", env), flap = $(".wenv-flap", env), paper = $(".wenv-letter", env);
+    heart.classList.remove("beating");
     return gsap.timeline()
-      .to(seal, { scale: 1.3, duration: 0.12 })
-      .to(seal, { scale: 0, rotation: 180, duration: 0.3, ease: "back.in(2)" })
-      .to(flap, { rotationX: 180, transformPerspective: 800, duration: 0.55, ease: "power2.inOut" }, "<0.05")
-      .set(flap, { zIndex: 1 }, "<0.28")
-      .to(paper, { y: -env.offsetWidth * 0.42, duration: 0.55, ease: "back.out(1.6)" }, "-=0.12")
-      .to(paper, { rotation: -3, duration: 0.1, yoyo: true, repeat: 1 });
+      .to(heart, { scale: 1.35, duration: 0.15 })
+      .to(heart, { scale: 0, rotation: 25, opacity: 0, duration: 0.3, ease: "back.in(2)" })
+      .to(flap, { rotationX: 180, transformPerspective: 800, duration: 0.6, ease: "power2.inOut" }, "<0.1")
+      .set(flap, { zIndex: 1 }, "<0.3")
+      .to(paper, { y: -env.offsetHeight * 0.62, duration: 0.6, ease: "back.out(1.4)" }, "-=0.1");
   };
-  HN.closeEnvelope = (env) => {
-    const seal = $(".env-seal", env), flap = $(".env-flap", env), paper = $(".env-letter", env);
+  HN.closeLove = (env) => {
+    const heart = $(".nheart", env), flap = $(".wenv-flap", env), paper = $(".wenv-letter", env);
     return gsap.timeline()
-      .to(paper, { y: 0, rotation: 0, duration: 0.4, ease: "power2.in" })
+      .to(paper, { y: 0, duration: 0.4, ease: "power2.in" })
       .to(flap, { rotationX: 0, duration: 0.45, ease: "power2.inOut" })
       .set(flap, { zIndex: 5 }, "<0.2")
-      .to(seal, { scale: 1, rotation: 0, duration: 0.45, ease: "back.out(2.5)" });
+      .to(heart, { scale: 1, rotation: 0, opacity: 1, duration: 0.45, ease: "back.out(2.5)" })
+      .add(() => heart.classList.add("beating"));
   };
+
+  /* Botanicals behind the envelope. Coordinates live in the bloom viewBox, where the envelope covers
+     x 70-330, y 140-312, so every stem starts hidden behind it and grows outwards. */
+  const LEAF = "M0 0C6 -9 17 -11 26 -5C18 3 7 5 0 0Z";
+  const BLOOM = {
+    stems: [
+      "M130 240C90 222 50 192 46 142C43 106 60 82 84 66",
+      "M110 280C70 286 40 270 22 240",
+      "M180 170C170 130 160 100 152 62C149 46 151 32 158 20",
+      "M220 170C232 132 248 104 262 74",
+      "M270 240C310 222 350 192 354 142C357 106 340 82 316 66",
+      "M290 280C330 286 360 270 378 240",
+    ],
+    leaves: [
+      [70, 206, 200, 1], [47, 150, 170, 0.9], [52, 104, 280, 0.85], [100, 228, 150, 0.7], [62, 282, 100, 0.8], [36, 262, 220, 0.75],
+      [168, 122, 200, 0.8], [151, 80, 320, 0.75], [236, 124, 330, 0.8], [252, 96, 220, 0.7],
+      [330, 206, -20, 1], [353, 150, 10, 0.9], [348, 104, 260, 0.85], [300, 228, 30, 0.7], [338, 282, 80, 0.8], [364, 262, 320, 0.75],
+    ],
+    flowers: [[84, 66, 1.15, 0], [22, 240, 0.75, 1], [158, 20, 1, 2], [262, 74, 0.9, 0], [316, 66, 1.15, 1], [378, 240, 0.75, 2]],
+    buds: [[40, 196], [118, 44], [206, 6], [296, 36], [362, 192], [12, 286], [388, 286]],
+  };
+  HN.bloom = (svg) => {
+    const defs = sv("defs", {}, svg);
+    gradient(defs, "linearGradient", "bmStem", { x1: 0, y1: 1, x2: 0, y2: 0 }, [[0, "#5eead4"], [1, "#22d3ee"]]);
+    gradient(defs, "linearGradient", "bmLeaf", { x1: 0, y1: 0, x2: 1, y2: 0 }, [[0, "#2dd4bf"], [1, "#a7f3d0"]]);
+    gradient(defs, "radialGradient", "bmP0", { cy: 0.9, r: 1 }, [[0, "#fff"], [0.5, "#ff8fbf"], [1, "#ff4f8b"]]);
+    gradient(defs, "radialGradient", "bmP1", { cy: 0.9, r: 1 }, [[0, "#fff"], [0.5, "#d8b4fe"], [1, "#a855f7"]]);
+    gradient(defs, "radialGradient", "bmP2", { cy: 0.9, r: 1 }, [[0, "#fff"], [0.6, "#fce7f3"], [1, "#f9a8d4"]]);
+    const stems = BLOOM.stems.map((d) => sv("path", { d, class: "stem" }, svg));
+    const leaves = BLOOM.leaves.map(([x, y, r, s]) => sv("path", { d: LEAF, class: "leaf" }, sv("g", { transform: `translate(${x} ${y}) rotate(${r}) scale(${s})` }, svg)));
+    const flowers = BLOOM.flowers.map(([x, y, s, c]) => {
+      const g = sv("g", {}, sv("g", { transform: `translate(${x} ${y}) scale(${s})` }, svg));
+      for (let k = 0; k < 6; k++) sv("ellipse", { cy: -9, rx: 5, ry: 9, class: "petal", fill: `url(#bmP${c})`, transform: `rotate(${k * 60})` }, g);
+      sv("circle", { r: 3.6, class: "core" }, g);
+      return g;
+    });
+    const buds = BLOOM.buds.map(([x, y]) => sv("circle", { cx: x, cy: y, r: 2.4, class: "bud" }, svg));
+    return { stems, leaves, flowers, buds };
+  };
+  // stems draw out, then leaves, flowers and buds pop; the whole thing is squeezed into `seconds`
+  HN.growBloom = (b, seconds) => {
+    b.stems.forEach((s) => { const len = s.getTotalLength(); gsap.set(s, { strokeDasharray: len, strokeDashoffset: len }); });
+    return gsap.timeline()
+      .to(b.stems, { strokeDashoffset: 0, duration: 0.7, stagger: 0.05, ease: "power2.out" })
+      .from(b.leaves, { scale: 0, transformOrigin: "0% 50%", duration: 0.35, stagger: 0.02, ease: "back.out(2.2)" }, "-=0.55")
+      .from(b.flowers, { scale: 0, rotation: -120, transformOrigin: "50% 50%", duration: 0.5, stagger: 0.04, ease: "back.out(1.7)" }, "-=0.4")
+      .from(b.buds, { scale: 0, opacity: 0, transformOrigin: "50% 50%", duration: 0.25, stagger: 0.03 }, "-=0.3")
+      .duration(seconds);
+  };
+  HN.swayBloom = (b, delay) => HN.loop(gsap.to(b.flowers, { rotation: "+=14", transformOrigin: "50% 50%", duration: 2.6, ease: "sine.inOut", delay, stagger: { each: 0.3, repeat: -1, yoyo: true } }));
 
   /* ---------- ticket ---------- */
   function row(ico, label, value) {
     const r = el("div", "t-row");
     const b = el("span", "badge", ico);
+    b.setAttribute("aria-hidden", "true");
     const t = el("div");
     t.append(el("small", null, label), el("strong", null, value));
     r.append(b, t);
     return r;
   }
-  HN.dodgeText = (n) => (n >= HN.NO_LIMIT ? "Né " + n + " lần, YES tự bấm luôn" : n ? "Bấm YES sau " + n + " lần né Không" : "Bấm YES ngay lần đầu");
+  HN.dodgeText = (n) => (n >= HN.NO_LIMIT ? "Né " + n + " lần, YES tự bấm" : n ? "Né " + n + " lần rồi YES" : "YES ngay lần đầu");
   HN.ticket = (t) => {
     const tk = el("div", "ticket");
     tk.append(el("span", "holo"));
     const head = el("div", "t-head");
-    head.append(el("span", null, "VÉ CHO HAI NGƯỜI"), el("span", null, "★ ADMIT 2"));
+    head.append(el("span", null, "★ VÉ CHO HAI NGƯỜI"));
     const names = el("div", "t-names");
     names.append(document.createTextNode(t.from + " "), el("span", "amp", "&"), document.createTextNode(" " + t.to));
     tk.append(head, names, row("📅", "Khi nào", t.when || "Người ấy sẽ chọn"));
@@ -493,7 +612,7 @@
     tk.append(row("🙈", "Nút Không", HN.dodgeText(t.dodges)));
     tk.append(el("div", "t-perf"));
     const foot = el("div", "t-foot");
-    foot.append(el("span", "t-bar"), el("span", "t-code", HN.DOMAIN + " · #" + String(t.code || "").toUpperCase().slice(0, 8)));
+    foot.append(el("span", "t-bar"), el("span", "t-code", "#" + String(t.code || "").toUpperCase().slice(0, 8)));
     tk.append(foot);
     return tk;
   };
@@ -583,24 +702,26 @@
     return c.toDataURL("image/png");
   };
   HN.shot = (url) => {
-    const back = el("div", "shot-backdrop");
+    const dlg = el("dialog", "shot");
     const img = el("img", "shot-img");
     img.src = url;
     img.alt = "Ảnh thẻ kèo";
     const hint = el("p", "shot-hint", "Nhấn giữ ảnh để lưu về máy");
+    hint.id = "shot-" + HN.randomCode(6);
+    dlg.setAttribute("aria-labelledby", hint.id);
     const row = el("div", "shot-actions");
     const dl = el("a", "btn btn-ghost btn-sm", "Tải ảnh");
     dl.href = url;
     dl.download = "hen-nha.png";
-    const close = el("button", "btn btn-sm", "Đóng");
-    close.type = "button";
-    close.onclick = () => gsap.to(back, { autoAlpha: 0, duration: 0.25, onComplete: () => back.remove() });
-    row.append(dl, close);
-    back.append(img, hint, row);
-    document.body.append(back);
-    gsap.fromTo(back, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.25 });
+    const closeBtn = el("button", "btn btn-sm", "Đóng");
+    closeBtn.type = "button";
+    closeBtn.autofocus = true;
+    row.append(dl, closeBtn);
+    dlg.append(img, hint, row);
+    const close = modal(dlg, {});
+    closeBtn.onclick = () => close();
+    gsap.fromTo(dlg, { opacity: 0 }, { opacity: 1, duration: 0.25 });
     gsap.fromTo(img, { y: 60, scale: 0.85, rotation: -4 }, { y: 0, scale: 1, rotation: 0, duration: 0.7, ease: "back.out(1.6)" });
-    close.focus({ preventScroll: true });
   };
 
   /* ---------- background: stars, drift, shooting stars ---------- */
@@ -608,7 +729,8 @@
     const sky = $("#sky");
     if (!sky) return;
     const rand = (a, b) => a + Math.random() * (b - a);
-    for (let i = 0; i < 120; i++) {
+    // each twinkling star is its own compositor layer, so keep the count modest
+    for (let i = 0; i < 70; i++) {
       const s = el("span", "star");
       const size = rand(1, 2.6);
       s.style.width = s.style.height = size + "px";

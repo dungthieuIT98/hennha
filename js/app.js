@@ -24,7 +24,7 @@
     const r = route();
     const token = ++navToken;
     HN.leave();
-    $$("body > .runaway-no, body > .sheet-backdrop, body > .shot-backdrop").forEach((n) => n.remove());
+    $$("body > .runaway-no, body > dialog").forEach((n) => n.remove());
     const app = $("#app");
     gsap.killTweensOf(app);
     if (first) { first = false; mount(r); return; }
@@ -61,8 +61,9 @@
   SCREENS.home = () => {
     const app = $("#app");
     const chars = HN.split($(".hero-title .split", app));
-    const env = HN.envelope({ to: "Lan", from: "Minh" });
-    $("#heroEnv").append(env);
+    const env = HN.loveEnvelope({ to: "Lan" });
+    $("#heroLove").append(env);
+    const bloom = HN.bloom($("#heroBloom"));
     HN.mountLotties(app);
 
     const intro = gsap.timeline({ delay: 0.05 })
@@ -71,34 +72,41 @@
       .fromTo(".grad-line", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.9, ease: "power3.inOut" }, "-=0.4")
       .from(".stage-card", { scale: 0.6, rotation: -10, autoAlpha: 0, duration: 1.1, ease: "elastic.out(1, 0.6)" }, 0.25)
       .from(".orbit", { scale: 0.4, autoAlpha: 0, stagger: 0.12, duration: 0.8, ease: "back.out(1.6)" }, 0.5)
-      .from(".float-badge", { scale: 0, autoAlpha: 0, stagger: 0.15, duration: 0.5, ease: "back.out(3)" }, 0.9);
+      .from(".float-badge", { scale: 0, autoAlpha: 0, stagger: 0.15, duration: 0.5, ease: "back.out(3)" }, 0.9)
+      .add(HN.growBloom(bloom, 1), 0.7);
     HN.onLeave(() => intro.kill());
 
     $$("[data-scramble]", app).forEach(HN.scramble);
     $$(".tilt", app).forEach((n) => HN.tilt(n, 9));
     $$(".magnetic", app).forEach((n) => HN.magnetic(n));
 
-    // hero envelope: floats, opens on tap, closes again
-    HN.loop(gsap.to(env, { y: -10, duration: 1.8, yoyo: true, repeat: -1, ease: "sine.inOut" }));
-    const seal = $(".env-seal", env);
-    const pulse = () => HN.loop(gsap.to(seal, { scale: 1.12, duration: 0.7, yoyo: true, repeat: -1, ease: "sine.inOut" }));
-    let sealPulse = pulse(), envBusy = false;
-    seal.addEventListener("click", () => {
+    // hero envelope: floats, opens on heart tap, closes again
+    const envFloat = HN.loop(gsap.to(env, { y: -10, duration: 1.8, yoyo: true, repeat: -1, ease: "sine.inOut" }));
+    const sway = HN.swayBloom(bloom, intro.duration());
+    const heart = $(".nheart", env);
+    let envBusy = false;
+    heart.addEventListener("click", () => {
       if (envBusy) return;
       envBusy = true;
-      if (sealPulse) sealPulse.kill();
-      const r = seal.getBoundingClientRect();
+      const r = heart.getBoundingClientRect();
       HN.burst(r.left + r.width / 2, r.top + r.height / 2, 24);
-      const t = HN.openEnvelope(env).to({}, { duration: 1.6 }).add(() => {
-        HN.closeEnvelope(env).add(() => { envBusy = false; sealPulse = pulse(); });
+      const t = HN.openLove(env).to({}, { duration: 1.6 }).add(() => {
+        HN.closeLove(env).add(() => { envBusy = false; });
       });
       HN.onLeave(() => t.kill());
     });
 
     // marquee of plans
+    // the second copy only exists for the seamless loop, so screen readers skip it
     const fill = (host, list) => {
       const track = el("div", "mq-track");
-      for (let k = 0; k < 2; k++) list.forEach((p) => { const c = el("span", "mq-chip"); c.append(el("i", null, p.ico), document.createTextNode(p.name)); track.append(c); });
+      for (let k = 0; k < 2; k++) list.forEach((p) => {
+        const c = el("span", "mq-chip"), ico = el("i", null, p.ico);
+        ico.setAttribute("aria-hidden", "true");
+        if (k) c.setAttribute("aria-hidden", "true");
+        c.append(ico, document.createTextNode(p.name));
+        track.append(c);
+      });
       host.append(track);
     };
     const half = Math.ceil(HN.PLANS.length / 2);
@@ -110,8 +118,9 @@
     // how it works: sender vs receiver tabs
     const renderSteps = (host, list) => list.forEach((s) => {
       const c = el("article", "step-card glass");
-      const top = el("div", "step-top");
-      top.append(el("span", "step-n", s.n), el("span", "badge", s.ico));
+      const top = el("div", "step-top"), badge = el("span", "badge", s.ico);
+      badge.setAttribute("aria-hidden", "true");
+      top.append(el("span", "step-n", s.n), badge);
       c.append(top, el("h3", null, s.title), el("p", null, s.text));
       host.append(c);
       HN.tilt(c, 6);
@@ -125,7 +134,7 @@
     tabs.forEach((b) => b.addEventListener("click", () => {
       const show = b.dataset.tab === "sender" ? $("#stepsSender") : $("#stepsReceiver");
       const hide = show.id === "stepsSender" ? $("#stepsReceiver") : $("#stepsSender");
-      tabs.forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+      tabs.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
       moveInd(b);
       if (!show.hidden) return;
       hide.hidden = true;
@@ -137,8 +146,16 @@
     const tk = HN.ticket({ from: "Minh", to: "Lan", when: HN.fmtWhen(HN.iso(HN.nextSaturday()), 19, 30), plans: ["trasua", "xemphim"], dodges: HN.NO_LIMIT, code: "k3x9m2pq" });
     $("#homeTicket").append(tk);
     HN.tilt(tk, 12);
-    HN.loop(gsap.to("#homeTicket", { y: -12, duration: 2.4, yoyo: true, repeat: -1, ease: "sine.inOut" }));
+    const tkFloat = HN.loop(gsap.to("#homeTicket", { y: -12, duration: 2.4, yoyo: true, repeat: -1, ease: "sine.inOut" }));
 
+    HN.pauseOffscreen([
+      [$(".hero-stage", app), [envFloat, sway]],
+      [$(".marquee", app), []],
+      [$(".demo", app), []],
+      [$(".ticket-sec", app), [tkFloat]],
+      [$(".cta-band", app), []],
+      ...$$(".grad-text", app).map((n) => [n, []]),
+    ]);
     HN.reveal(app);
     if (pendingScroll) { const id = pendingScroll; pendingScroll = null; setTimeout(() => scrollToId(id), 120); }
   };
@@ -156,12 +173,12 @@
       const yesBox = { x: yr.left + yr.width / 2 - c.left - yw / 2, y: yr.top + yr.height / 2 - c.top - yh / 2, w: yw, h: yh };
       const textBox = { x: qr.left - c.left, y: qr.top - c.top, w: qr.width, h: qr.height };
       const nw = no.offsetWidth, nh = no.offsetHeight, pad = 14;
-      const cx = parseFloat(no.style.left) || 0, cy = parseFloat(no.style.top) || 0;
+      const cx = gsap.getProperty(no, "x"), cy = gsap.getProperty(no, "y");
       for (const t of [{ text: true, dist: 80 }, { text: false, dist: 50 }, { text: false, dist: 0 }]) {
         for (let i = 0; i < 80; i++) {
           const box = { x: pad + Math.random() * Math.max(0, c.width - nw - 2 * pad), y: pad + Math.random() * Math.max(0, c.height - nh - 2 * pad), w: nw, h: nh };
           if (overlaps(box, yesBox, 16) || (t.text && overlaps(box, textBox, 6)) || Math.hypot(box.x - cx, box.y - cy) < t.dist) continue;
-          gsap.to(no, { left: box.x, top: box.y, rotation: gsap.utils.random(-14, 14), duration: 0.35, ease: "back.out(2)" });
+          gsap.to(no, { x: box.x, y: box.y, rotation: gsap.utils.random(-14, 14), duration: 0.35, ease: "back.out(2)" });
           return;
         }
       }
@@ -172,19 +189,22 @@
       const now = Date.now();
       if (now - last < 150) return;
       last = now;
+      const hadFocus = document.activeElement === no;
       if (!floating) {
         const c = stage.getBoundingClientRect(), r = no.getBoundingClientRect();
         stage.append(no);
         no.classList.add("floating");
-        gsap.set(no, { left: r.left - c.left, top: r.top - c.top });
+        gsap.set(no, { x: r.left - c.left, y: r.top - c.top });
         floating = true;
+        if (hadFocus) no.focus({ preventScroll: true });
       }
       dodges++;
       const ys = Math.min(1 + 0.14 * dodges, 2);
       if (dodges >= HN.NO_LIMIT) {
         gone = true;
+        if (hadFocus) yes.focus({ preventScroll: true });
         gsap.to(yes, { scale: ys, duration: 0.4, ease: "back.out(2.5)" });
-        gsap.to(no, { x: 260, y: -320, rotation: 60, scale: 0.3, autoAlpha: 0, duration: 0.7, ease: "power2.in" });
+        gsap.to(no, { x: "+=260", y: "-=320", rotation: 60, scale: 0.3, autoAlpha: 0, duration: 0.7, ease: "power2.in" });
         run.hidden = false;
         gsap.from(run, { y: -10, autoAlpha: 0, duration: 0.3 });
         autoYes = gsap.delayedCall(1.3, () => yes.click());
@@ -197,16 +217,19 @@
     no.addEventListener("pointerdown", dodge);
     no.addEventListener("touchstart", dodge, { passive: false });
     no.addEventListener("mouseenter", dodge);
+    no.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") dodge(e); });
     no.addEventListener("click", (e) => e.preventDefault());
     yes.addEventListener("click", () => {
       if (autoYes) autoYes.kill();
       const r = yes.getBoundingClientRect();
       HN.burst(r.left + r.width / 2, r.top + r.height / 2);
+      const hadFocus = stage.contains(document.activeElement);
       gsap.to(stage, {
         autoAlpha: 0, scale: 0.9, duration: 0.3,
         onComplete: () => {
           stage.hidden = true;
           done.hidden = false;
+          if (hadFocus) $("#dReplay").focus({ preventScroll: true });
           gsap.fromTo(done, { autoAlpha: 0, scale: 0.8 }, { autoAlpha: 1, scale: 1, duration: 0.6, ease: "back.out(2)" });
           gsap.fromTo(".stamp", { scale: 2.4, rotation: -30, autoAlpha: 0 }, { scale: 1, rotation: -8, autoAlpha: 1, duration: 0.5, ease: "back.out(3)", delay: 0.15 });
         },
@@ -221,6 +244,7 @@
       $(".btns", stage).append(no);
       done.hidden = true;
       stage.hidden = false;
+      yes.focus({ preventScroll: true });
     });
   }
 
@@ -230,7 +254,7 @@
   SCREENS.create = () => {
     const app = $("#app");
     const steps = $$(".cstep", app);
-        const LABELS = ["Nhân vật", "Lời thoại", "Thời gian", "Kịch bản", "Chiếu thử", "Phát hành"];
+    const LABELS = ["Nhân vật", "Lời thoại", "Thời gian", "Kịch bản", "Chiếu thử", "Phát hành"];
     const ENTER = {};
     let d = HN.draft.get();
     let step = Math.min(Math.max(1, Number(d.step) || 1), 7);
@@ -244,6 +268,7 @@
     LABELS.forEach((l, i) => {
       const b = el("button", "st-node");
       b.type = "button";
+      b.setAttribute("aria-label", "Bước " + (i + 1) + ": " + l);
       b.append(el("span", "st-dot", String(i + 1)), el("span", "st-label", l));
       b.addEventListener("click", () => { if (i + 1 < step && step < 7) goStep(i + 1); });
       stepperHost.append(b);
@@ -252,6 +277,7 @@
       $$(".st-node", app).forEach((n, i) => {
         n.classList.toggle("done", i + 1 < step);
         n.classList.toggle("current", i + 1 === step);
+        if (i + 1 === step) n.setAttribute("aria-current", "step"); else n.removeAttribute("aria-current");
         n.disabled = !(i + 1 < step && step < 7);
       });
       gsap.to(".st-fill", { scaleX: Math.min(step - 1, 5) / 5, duration: 0.6, ease: "power3.inOut" });
@@ -270,6 +296,7 @@
         if (animate) {
           gsap.fromTo(next.children, { y: 24, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.04, duration: 0.45, ease: "power3.out", clearProps: "transform,opacity", onComplete: () => { busy = false; } });
           window.scrollTo({ top: 0, behavior: HN.reduce ? "auto" : "smooth" });
+          HN.focusHeading(next);
         } else busy = false;
       };
       busy = true;
@@ -295,10 +322,12 @@
         $("#cTo").textContent = HN.len(to.value) + "/20";
         const show = touched && pf;
         $("#fFrom").classList.toggle("invalid", !!show);
+        from.setAttribute("aria-invalid", String(!!show));
         $("#hFrom").hidden = !show;
         $("#hFrom").textContent = pf;
         const showTo = toTouched && pt;
         $("#fTo").classList.toggle("invalid", !!showTo);
+        to.setAttribute("aria-invalid", String(!!showTo));
         $("#hTo").hidden = !showTo;
         $("#hTo").textContent = pt;
         $("#next1").disabled = !!pf || !!pt;
@@ -319,6 +348,7 @@
       const p = HN.checkText(msg.value, { max: 100, emptyMsg: "Bạn chưa viết câu rủ" });
       $("#cMsg").textContent = HN.len(msg.value) + "/100";
       $("#fMsg").classList.toggle("invalid", !!p);
+      msg.setAttribute("aria-invalid", String(!!p));
       $("#hMsg").hidden = !p;
       $("#hMsg").textContent = p;
       $("#next2").disabled = !!p;
@@ -328,7 +358,11 @@
     const tplText = (t) => HN.renderTemplate(t.text, HN.draft.get().to);
     function markTemplates() {
       const now = HN.clean(msg.value);
-      tplButtons.forEach(({ b, t }) => b.classList.toggle("selected", now === HN.clean(tplText(t))));
+      tplButtons.forEach(({ b, t }) => {
+        const on = now === HN.clean(tplText(t));
+        b.classList.toggle("selected", on);
+        b.setAttribute("aria-pressed", String(on));
+      });
     }
     function renderTemplates() {
       const cur = HN.draft.get();
@@ -402,19 +436,24 @@
           const b = el("button", "option" + (chosen.has(p.id) ? " selected" : ""));
           b.type = "button";
           b.setAttribute("aria-pressed", String(chosen.has(p.id)));
-          b.append(el("span", "badge", p.ico), document.createTextNode(p.name));
+          const badge = el("span", "badge", p.ico);
+          badge.setAttribute("aria-hidden", "true");
+          b.append(badge, document.createTextNode(p.name));
           b.addEventListener("click", () => {
             if (chosen.has(p.id)) chosen.delete(p.id); else chosen.add(p.id);
             render();
             const nb = $$(".option", host).find((x) => x.textContent.endsWith(p.name));
-            if (nb) gsap.fromTo($(".badge", nb), { scale: 0.5, rotation: -30 }, { scale: 1, rotation: 0, duration: 0.5, ease: "back.out(3)" });
+            if (nb) {
+              nb.focus({ preventScroll: true });
+              gsap.fromTo($(".badge", nb), { scale: 0.5, rotation: -30 }, { scale: 1, rotation: 0, duration: 0.5, ease: "back.out(3)" });
+            }
           });
           host.append(b);
         });
       }
       function render() {
         group(tab, $("#planList"));
-        $$("[data-ptab]", app).forEach((t) => t.setAttribute("aria-selected", String(t.dataset.ptab === tab)));
+        $$("[data-ptab]", app).forEach((t) => t.setAttribute("aria-pressed", String(t.dataset.ptab === tab)));
         const plans = HN.PLANS.filter((p) => chosen.has(p.id)).map((p) => p.id);
         const nAn = HN.PLANS.filter((p) => p.group === "an" && chosen.has(p.id)).length;
         $("#cntAn").textContent = nAn ? "(" + nAn + ")" : "";
@@ -453,7 +492,7 @@
         ["Cảnh 1 · Nhân vật chính", "Cảnh 2 · Lời thoại", "Cảnh 3 · Thời gian", "Cảnh 4 · Kịch bản"].forEach((label, i) => {
           const b = el("button", "btn btn-ghost btn-block", label);
           b.type = "button";
-          b.addEventListener("click", () => { close(); goStep(i + 1); });
+          b.addEventListener("click", () => close(() => goStep(i + 1)));
           list.append(b);
         });
         sh.append(el("h3", null, "Sửa cảnh nào?"), el("p", "sub", "Dữ liệu đã nhập vẫn được giữ nguyên"), list);
@@ -470,17 +509,27 @@
         HN.PRICING.forEach((p) => {
           const b = el("button", "choice price-choice" + (p.id === chosen ? " selected" : ""));
           b.type = "button";
+          b.setAttribute("aria-pressed", String(p.id === chosen));
           const body = el("span", "c-body");
           const t = el("span", "c-title", p.title);
           if (p.pill) t.append(el("span", "pill", p.pill));
           body.append(t, el("span", "c-sub", p.sub));
           b.append(el("span", "dot"), body, el("b", "c-price", p.price));
-          b.addEventListener("click", () => { chosen = p.id; HN.draft.set({ plan: chosen }); renderPricing(); });
+          b.addEventListener("click", () => {
+            chosen = p.id;
+            HN.draft.set({ plan: chosen });
+            renderPricing();
+            $("#pricing .selected").focus({ preventScroll: true });
+          });
           host.append(b);
         });
       }
       renderPricing();
-      const update = () => { $("#createBtn").disabled = !($("#age").checked && $("#terms").checked); };
+      const update = () => {
+        const ok = $("#age").checked && $("#terms").checked;
+        $("#createBtn").disabled = !ok;
+        $("#hCreate").hidden = ok;
+      };
       $("#age").addEventListener("change", update);
       $("#terms").addEventListener("change", update);
       update();
@@ -492,8 +541,10 @@
         HN.sheet((sh, close) => {
           const ok = el("button", "btn btn-block", "Nhận thiệp miễn phí");
           ok.type = "button";
-          ok.addEventListener("click", () => { close(); publish(chosen); });
-          sh.append(el("div", "big-emoji", "🎁"), el("h3", null, "Sắp mở bán!"), el("p", "sub", "Gói trả phí sẽ mở trong thời gian tới. Hôm nay tụi mình tặng bạn thiệp này miễn phí."), ok);
+          ok.addEventListener("click", () => close(() => publish(chosen)));
+          const gift = el("div", "big-emoji", "🎁");
+          gift.setAttribute("aria-hidden", "true");
+          sh.append(gift, el("h3", null, "Sắp mở bán!"), el("p", "sub", "Gói trả phí sẽ mở trong thời gian tới. Hôm nay tụi mình tặng bạn thiệp này miễn phí."), ok);
         });
       });
     })();
@@ -529,6 +580,7 @@
       const p = HN.checkText(share.value, { required: false, max: 100 });
       $("#cShare").textContent = HN.len(share.value) + "/100";
       $("#fShare").classList.toggle("invalid", !!p);
+      share.setAttribute("aria-invalid", String(!!p));
       $("#hShare").textContent = p || "Gửi kèm một câu để người ấy biết là bạn gửi, đừng gửi link trơn";
       $("#hShare").classList.toggle("error", !!p);
       $("#shareBtn").disabled = !!p;
@@ -565,56 +617,6 @@
      RECEIVER (N1 to N3, N7 when invalid)
      ===================================================================== */
   const DOW_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-
-  /* N1 botanicals. Coordinates live in the bloom viewBox, where the envelope covers x 70-330, y 140-312,
-     so every stem starts hidden behind it and grows outwards. */
-  const SVGNS = "http://www.w3.org/2000/svg";
-  const LEAF = "M0 0C6 -9 17 -11 26 -5C18 3 7 5 0 0Z";
-  const BLOOM = {
-    stems: [
-      "M130 240C90 222 50 192 46 142C43 106 60 82 84 66",
-      "M110 280C70 286 40 270 22 240",
-      "M180 170C170 130 160 100 152 62C149 46 151 32 158 20",
-      "M220 170C232 132 248 104 262 74",
-      "M270 240C310 222 350 192 354 142C357 106 340 82 316 66",
-      "M290 280C330 286 360 270 378 240",
-    ],
-    leaves: [
-      [70, 206, 200, 1], [47, 150, 170, 0.9], [52, 104, 280, 0.85], [100, 228, 150, 0.7], [62, 282, 100, 0.8], [36, 262, 220, 0.75],
-      [168, 122, 200, 0.8], [151, 80, 320, 0.75], [236, 124, 330, 0.8], [252, 96, 220, 0.7],
-      [330, 206, -20, 1], [353, 150, 10, 0.9], [348, 104, 260, 0.85], [300, 228, 30, 0.7], [338, 282, 80, 0.8], [364, 262, 320, 0.75],
-    ],
-    flowers: [[84, 66, 1.15, 0], [22, 240, 0.75, 1], [158, 20, 1, 2], [262, 74, 0.9, 0], [316, 66, 1.15, 1], [378, 240, 0.75, 2]],
-    buds: [[40, 196], [118, 44], [206, 6], [296, 36], [362, 192], [12, 286], [388, 286]],
-  };
-  function sv(tag, attrs, parent) {
-    const n = document.createElementNS(SVGNS, tag);
-    for (const k in attrs) n.setAttribute(k, attrs[k]);
-    if (parent) parent.append(n);
-    return n;
-  }
-  function gradient(defs, tag, id, attrs, stops) {
-    const g = sv(tag, Object.assign({ id }, attrs), defs);
-    stops.forEach(([o, c]) => sv("stop", { offset: o, "stop-color": c }, g));
-  }
-  function buildBloom(svg) {
-    const defs = sv("defs", {}, svg);
-    gradient(defs, "linearGradient", "bmStem", { x1: 0, y1: 1, x2: 0, y2: 0 }, [[0, "#5eead4"], [1, "#22d3ee"]]);
-    gradient(defs, "linearGradient", "bmLeaf", { x1: 0, y1: 0, x2: 1, y2: 0 }, [[0, "#2dd4bf"], [1, "#a7f3d0"]]);
-    gradient(defs, "radialGradient", "bmP0", { cy: 0.9, r: 1 }, [[0, "#fff"], [0.5, "#ff8fbf"], [1, "#ff4f8b"]]);
-    gradient(defs, "radialGradient", "bmP1", { cy: 0.9, r: 1 }, [[0, "#fff"], [0.5, "#d8b4fe"], [1, "#a855f7"]]);
-    gradient(defs, "radialGradient", "bmP2", { cy: 0.9, r: 1 }, [[0, "#fff"], [0.6, "#fce7f3"], [1, "#f9a8d4"]]);
-    const stems = BLOOM.stems.map((d) => sv("path", { d, class: "stem" }, svg));
-    const leaves = BLOOM.leaves.map(([x, y, r, s]) => sv("path", { d: LEAF, class: "leaf" }, sv("g", { transform: `translate(${x} ${y}) rotate(${r}) scale(${s})` }, svg)));
-    const flowers = BLOOM.flowers.map(([x, y, s, c]) => {
-      const g = sv("g", {}, sv("g", { transform: `translate(${x} ${y}) scale(${s})` }, svg));
-      for (let k = 0; k < 6; k++) sv("ellipse", { cy: -9, rx: 5, ry: 9, class: "petal", fill: `url(#bmP${c})`, transform: `rotate(${k * 60})` }, g);
-      sv("circle", { r: 3.6, class: "core" }, g);
-      return g;
-    });
-    const buds = BLOOM.buds.map(([x, y]) => sv("circle", { cx: x, cy: y, r: 2.4, class: "bud" }, svg));
-    return { stems, leaves, flowers, buds };
-  }
 
   const DEMO = () => ({ code: "demo00", from: "Minh", to: "Lan", message: "Lan ơi, cuối tuần này đi chơi với tớ nha?", timeMode: "fixed", date: HN.iso(HN.nextSaturday()), hour: 19, minute: 30, plans: ["trasua", "cafe", "xemphim", "daoho"] });
 
@@ -658,15 +660,17 @@
           if (ENTER[n]) ENTER[n]();
           gsap.fromTo(next, { x: 40 * dir, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: "power3.out", clearProps: "transform,opacity", onComplete: () => { busy = false; } });
           window.scrollTo(0, 0);
+          HN.focusHeading(next);
         },
       });
     }
     $$("[data-rback]", app).forEach((b) => b.addEventListener("click", () => goTo(step - 1)));
 
     /* N1 letter: the white envelope, then the letter turns into the event dashboard */
-    const wenv = $("#wenv"), heart = $("#heartBtn"), letter = $("#wLetter"), flap = $("#wFlap");
+    const wenv = HN.loveEnvelope({ to: greet });
+    $("#love").insertBefore(wenv, $("#loveHint"));
+    const heart = $(".nheart", wenv), letter = $(".wenv-letter", wenv), flap = $(".wenv-flap", wenv);
     const pad2 = HN.pad2;
-    $("#wTo").textContent = "Gửi " + greet;
     $("#dCode").textContent = "#" + inv.code.toUpperCase();
     $("#dTo").textContent = greet;
     $("#dFrom").textContent = inv.from;
@@ -689,32 +693,27 @@
       const li = el("li");
       const txt = el("div");
       txt.append(el("b", null, p.name), el("small", null, p.group === "an" ? "Ăn uống" : "Đi chơi"));
-      li.append(el("span", "ico", p.ico), txt, el("span", "n", "#" + pad2(i + 1)));
+      const ico = el("span", "ico", p.ico);
+      ico.setAttribute("aria-hidden", "true");
+      li.append(ico, txt, el("span", "n", "#" + pad2(i + 1)));
       $("#dPlans").append(li);
     });
     if (!plans.length) { $(".dash-label", app).hidden = true; $("#dPlans").hidden = true; }
 
-    const bloom = buildBloom($("#bloom"));
-    bloom.stems.forEach((s) => { const len = s.getTotalLength(); gsap.set(s, { strokeDasharray: len, strokeDashoffset: len }); });
+    const bloom = HN.bloom($("#bloom"));
     gsap.set(wenv, { transformPerspective: 900 });
     const BLOOM_SECONDS = 1;
-    const grow = gsap.timeline()
-      .to(bloom.stems, { strokeDashoffset: 0, duration: 0.7, stagger: 0.05, ease: "power2.out" })
-      .from(bloom.leaves, { scale: 0, transformOrigin: "0% 50%", duration: 0.35, stagger: 0.02, ease: "back.out(2.2)" }, "-=0.55")
-      .from(bloom.flowers, { scale: 0, rotation: -120, transformOrigin: "50% 50%", duration: 0.5, stagger: 0.04, ease: "back.out(1.7)" }, "-=0.4")
-      .from(bloom.buds, { scale: 0, opacity: 0, transformOrigin: "50% 50%", duration: 0.25, stagger: 0.03 }, "-=0.3");
-    grow.duration(BLOOM_SECONDS);
     const intro = gsap.timeline()
       .fromTo(".recv-card", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out", clearProps: "transform,opacity" })
       .fromTo("#loveEyebrow", { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, clearProps: "transform,opacity" }, "-=0.3")
       .fromTo(wenv, { y: 60, rotationX: 55, scale: 0.7, opacity: 0 }, { y: 0, rotationX: 0, scale: 1, opacity: 1, duration: 1.1, ease: "elastic.out(1, 0.75)" }, "<")
-      .add(grow, "-=0.8")
+      .add(HN.growBloom(bloom, BLOOM_SECONDS), "-=0.8")
       .fromTo(heart, { scale: 0 }, { scale: 1, duration: 0.5, ease: "back.out(3)", clearProps: "transform" }, "-=0.5")
       .fromTo("#loveHint", { y: 10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, clearProps: "transform,opacity" }, "-=0.2");
     HN.onLeave(() => intro.kill());
     const idle = [
       HN.loop(gsap.to(wenv, { y: -7, duration: 1.8, yoyo: true, repeat: -1, ease: "sine.inOut", delay: intro.duration() })),
-      HN.loop(gsap.to(bloom.flowers, { rotation: "+=14", transformOrigin: "50% 50%", duration: 2.6, ease: "sine.inOut", delay: intro.duration(), stagger: { each: 0.3, repeat: -1, yoyo: true } })),
+      HN.swayBloom(bloom, intro.duration()),
       HN.fine ? null : HN.loop(gsap.fromTo(wenv, { rotationY: -10 }, { rotationY: 10, duration: 3, yoyo: true, repeat: -1, ease: "sine.inOut", delay: intro.duration(), immediateRender: false })),
     ];
     HN.tilt(wenv, 14);
@@ -724,19 +723,14 @@
     function open() {
       if (opened) return;
       opened = true;
-      heart.classList.remove("beating");
       heart.disabled = true;
       idle.forEach((t) => t && t.kill());
       const h = heart.getBoundingClientRect();
       HN.burst(h.left + h.width / 2, h.top + h.height / 2, 30);
       const t = gsap.timeline()
         .to(wenv, { y: 0, rotationX: 0, rotationY: 0, duration: 0.4, ease: "power3.out" })
-        .to(heart, { scale: 1.35, duration: 0.15 }, 0)
-        .to(heart, { scale: 0, rotation: 25, opacity: 0, duration: 0.3, ease: "back.in(2)" })
-        .to("#loveHint", { opacity: 0, duration: 0.2 }, "<")
-        .to(flap, { rotationX: 180, transformPerspective: 800, duration: 0.6, ease: "power2.inOut" }, "<0.1")
-        .set(flap, { zIndex: 1 }, "<0.3")
-        .to(letter, { y: -wenv.offsetHeight * 0.62, duration: 0.6, ease: "back.out(1.4)" }, "-=0.1")
+        .to("#loveHint", { opacity: 0, duration: 0.2 }, 0)
+        .add(HN.openLove(wenv), 0)
         .to([$(".wenv-back", wenv), $(".wenv-front", wenv), flap, "#bloom"], { opacity: 0, y: 30, duration: 0.45, ease: "power2.in" }, "+=0.15")
         .add(morph);
       HN.onLeave(() => t.kill());
@@ -774,10 +768,12 @@
     let gone = false, last = 0, autoYes = null, recorded = false;
     function toBody() {
       if (noBtn.parentElement === document.body) return;
+      const hadFocus = document.activeElement === noBtn;
       const rect = noBtn.getBoundingClientRect();
       document.body.append(noBtn);
       noBtn.classList.add("runaway-no");
-      gsap.set(noBtn, { left: rect.left, top: rect.top });
+      gsap.set(noBtn, { x: rect.left, y: rect.top });
+      if (hadFocus) noBtn.focus({ preventScroll: true });
     }
     function dodge(e) {
       if (e) e.preventDefault();
@@ -801,12 +797,13 @@
         const tx = pad + Math.random() * (maxX - pad), ty = top + Math.random() * (maxY - top);
         if (tx + w < cx - hw || tx > cx + hw || ty + h < cy - hh || ty > cy + hh) { x = tx; y = ty; break; }
       }
-      gsap.to(noBtn, { left: x, top: y, rotation: gsap.utils.random(-15, 15), scale: Math.max(1 - ans.dodges * 0.05, 0.7), duration: 0.3, ease: "back.out(2)" });
+      gsap.to(noBtn, { x, y, rotation: gsap.utils.random(-15, 15), scale: Math.max(1 - ans.dodges * 0.05, 0.7), duration: 0.3, ease: "back.out(2)" });
     }
     function flee() {
       gone = true;
+      if (document.activeElement === noBtn) yesBtn.focus({ preventScroll: true });
       toBody();
-      gsap.to(noBtn, { x: innerWidth * 0.6, y: -innerHeight * 0.7, rotation: 60, scale: 0.3, autoAlpha: 0, duration: 0.7, ease: "power2.in", onComplete: () => { noBtn.hidden = true; } });
+      gsap.to(noBtn, { x: "+=" + innerWidth * 0.6, y: "-=" + innerHeight * 0.7, rotation: 60, scale: 0.3, autoAlpha: 0, duration: 0.7, ease: "power2.in", onComplete: () => { noBtn.hidden = true; } });
       const m = $("#runawayMsg");
       m.hidden = false;
       gsap.from(m, { y: 10, autoAlpha: 0, duration: 0.35 });
@@ -818,6 +815,7 @@
     noBtn.addEventListener("mouseenter", dodge);
     noBtn.addEventListener("touchstart", dodge, { passive: false });
     noBtn.addEventListener("pointerdown", dodge);
+    noBtn.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") dodge(e); });
     noBtn.addEventListener("click", (e) => e.preventDefault());
     yesBtn.addEventListener("click", () => {
       if (autoYes) autoYes.kill();
@@ -842,11 +840,18 @@
         .fromTo(".end-actions .btn, #saveBtn", { y: 20, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.08, duration: 0.4, clearProps: "transform,opacity" }, "-=0.3");
       gsap.delayedCall(0.2, () => HN.burst(innerWidth / 2, innerHeight * 0.35, 44));
     };
+    // aria-busy rather than disabled so keyboard focus stays on the button while the image renders
+    let saving = false;
     $("#saveBtn").addEventListener("click", async () => {
-      const btn = $("#saveBtn");
-      btn.disabled = true;
+      if (saving) return;
+      saving = true;
+      const btn = $("#saveBtn"), label = btn.textContent;
+      btn.setAttribute("aria-busy", "true");
+      btn.textContent = "Đang tạo ảnh…";
       try { HN.shot(await HN.ticketImage(ticketData())); } catch (e) { console.error(e); HN.toast("Không tạo được ảnh, cậu chụp màn hình giúp tớ nhé"); }
-      btn.disabled = false;
+      btn.textContent = label;
+      btn.removeAttribute("aria-busy");
+      saving = false;
     });
     $("#calBtn").addEventListener("click", () => {
       const start = HN.parseISO(ans.date);
@@ -962,13 +967,19 @@
         if (i.responses.length) {
           const more = el("button", "more");
           more.type = "button";
-          more.append(el("span", null, "Xem phản hồi"), el("span", "chev", "▾"));
+          const chev = el("span", "chev", "▾");
+          chev.setAttribute("aria-hidden", "true");
+          more.append(el("span", null, "Xem phản hồi"), chev);
           const box = el("div", "resp-box");
+          box.id = "resp-" + HN.randomCode(6);
           box.hidden = true;
+          more.setAttribute("aria-expanded", "false");
+          more.setAttribute("aria-controls", box.id);
           i.responses.forEach((r) => box.append(respCard(r, conf)));
           more.addEventListener("click", () => {
             box.hidden = !box.hidden;
-            $(".chev", more).textContent = box.hidden ? "▾" : "▴";
+            more.setAttribute("aria-expanded", String(!box.hidden));
+            chev.textContent = box.hidden ? "▾" : "▴";
             if (!box.hidden) gsap.fromTo(box.children, { y: 16, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.07, duration: 0.35, ease: "power3.out", clearProps: "transform,opacity" });
           });
           card.append(more, box);
@@ -1018,7 +1029,7 @@
     const moveInd = (b, instant) => gsap.to(ind, { x: b.offsetLeft, width: b.offsetWidth, duration: instant ? 0 : 0.45, ease: "back.out(1.4)" });
     requestAnimationFrame(() => moveInd(tabs[0], true));
     tabs.forEach((b) => b.addEventListener("click", () => {
-      tabs.forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+      tabs.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
       moveInd(b);
       const cal = b.dataset.tab === "cal";
       $("#paneList").hidden = cal;
