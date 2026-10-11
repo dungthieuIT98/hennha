@@ -1,6 +1,6 @@
 # Metadata mode
 
-The site is one static `index.html` with hash routes, deployed by `.github/workflows/pages.yml` to `https://dungthieuit98.github.io/hennha/` (`HN.DOMAIN` in `js/data.js`). Crawlers and chat apps (Zalo, Messenger) never run JS and never see the hash, so every shared link previews with the `<head>` of `index.html`. Do not try to make per-invite previews.
+The site is one static `index.html` with hash routes, served from the address in `HN.DOMAIN` (`js/data.js`). Crawlers and chat apps (Zalo, Messenger) never run JS and never see the hash, so every shared link previews with the `<head>` of `index.html`. Do not try to make per-invite previews.
 
 ## Rules, by priority
 
