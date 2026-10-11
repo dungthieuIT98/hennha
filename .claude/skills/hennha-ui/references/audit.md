@@ -4,7 +4,7 @@ Find at most three UI problems that are proven, not guessed, then write plans on
 
 ## 1. Pick one surface
 
-Honor the user's scope. If it is broad, pick one route (`#/`, `#/create`, `#/n/<code>`, `#/q`) and say which. Trace it from its `<template id="tpl-…">` in `index.html` through `SCREENS.<name>` in `js/app.js`, the `HN.*` helpers in `js/core.js`, and the rules in `css/app.css` that actually match its elements.
+Honor the user's scope. If it is broad, pick one route (`#/`, `#/create`, `#/n/<code>`, `#/q`) and say which. Trace it from its `<template id="tpl-…">` in `index.html` through `HN.SCREENS.<name>` in `js/screens/`, the `HN.*` helpers in `js/core.js`, `js/fx.js`, `js/ui.js` and `js/art.js`, and the rules in `css/app.css` that actually match its elements.
 
 ## 2. Record the design language
 
@@ -78,7 +78,7 @@ Written against: <git rev-parse --short HEAD, or "uncommitted">
 
 ## Validation
 - Flows: <routes, states, keyboard path, 390px + 1280px>
-- Check: `node --check js/*.js` → no output
+- Check: `node --check` on each file in `js/*.js` and `js/screens/*.js` → no output
 
 ## Stop if
 - <assumption that, if false, means the plan is wrong>
