@@ -18,9 +18,12 @@
   if (IN_FRAME) document.body.classList.add("in-frame");
 
   /* ---------- route lifecycle ---------- */
-  let disposers = [];
+  let disposers = [], visit = 0;
   HN.onLeave = (fn) => { disposers.push(fn); return fn; };
+  // changes on every route change, so async work can tell whether its screen is still up
+  HN.visit = () => visit;
   HN.leave = () => {
+    visit++;
     const list = disposers;
     disposers = [];
     for (let i = list.length - 1; i >= 0; i--) { try { list[i](); } catch (e) { console.error(e); } }

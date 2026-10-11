@@ -4,18 +4,40 @@
   const HN = window.HN;
   const { $, $$, el, reduce, fine } = HN;
 
-  /* ---------- lottie ---------- */
+  /* ---------- lottie (decorative, so the player and its data load once the first screen is up) ---------- */
+  // the build script copies these two files as they are, keep the list in sync with tools/build.mjs
+  const LOTTIE_SRC = ["vendor/lottie_light.min.js", "lottie/animations.js"];
+  const whenIdle = (fn) => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 1000 }) : setTimeout(fn, 200));
+  const loadScript = (src) => new Promise((ok, fail) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = ok;
+    s.onerror = fail;
+    document.head.append(s);
+  });
+  let lottieReady = null;
+  function loadLottie() {
+    if (!lottieReady) {
+      lottieReady = new Promise(whenIdle).then(() => LOTTIE_SRC.reduce((p, src) => p.then(() => loadScript(src)), Promise.resolve()));
+      lottieReady.catch(() => { lottieReady = null; }); // offline or blocked: try again on the next screen
+    }
+    return lottieReady;
+  }
   const clone = (o) => (typeof structuredClone === "function" ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
   HN.lottie = (container, name, loop, fit = "meet") => lottie.loadAnimation({
     container, renderer: "svg", loop, autoplay: false, animationData: clone(window.LOTTIE[name]),
     rendererSettings: { preserveAspectRatio: "xMidYMid " + fit },
   });
   HN.mountLotties = (root) => {
+    $$("[data-lottie]", root).forEach((n) => n.setAttribute("aria-hidden", "true"));
+    const visit = HN.visit();
+    loadLottie().then(() => { if (visit === HN.visit()) mount(root); }, () => {});
+  };
+  function mount(root) {
     const loops = new Map();
     $$("[data-lottie]", root).forEach((n) => {
       if (n.dataset.mounted || !window.LOTTIE[n.dataset.lottie]) return;
       n.dataset.mounted = "1";
-      n.setAttribute("aria-hidden", "true");
       const loop = n.dataset.loop === "1";
       const a = HN.lottie(n, n.dataset.lottie, loop, n.dataset.fit);
       if (reduce) a.goToAndStop(Math.floor(a.totalFrames / 3), true);
@@ -30,7 +52,7 @@
     }));
     loops.forEach((_, n) => io.observe(n));
     HN.onLeave(() => io.disconnect());
-  };
+  }
 
   // CSS loops get .paused (see app.css); GSAP loops passed alongside a node pause with it
   HN.pauseOffscreen = (pairs) => {
@@ -94,12 +116,24 @@
   };
 
   /* ---------- pointer effects ---------- */
+  // quickTo tweens are built on the first hover (most nodes are never hovered) and killed on leave,
+  // otherwise GSAP keeps them, and the detached screen they point at, alive after the route changes
+  function follower(node, props, vars) {
+    let fns = null;
+    return () => {
+      if (!fns) {
+        fns = props.map((p) => gsap.quickTo(node, p, vars));
+        HN.onLeave(() => fns.forEach((f) => f.tween.kill()));
+      }
+      return fns;
+    };
+  }
   HN.tilt = (node, max = 10) => {
     if (!fine || reduce) return;
     gsap.set(node, { transformPerspective: 900 });
-    const rx = gsap.quickTo(node, "rotationX", { duration: 0.5, ease: "power3.out" });
-    const ry = gsap.quickTo(node, "rotationY", { duration: 0.5, ease: "power3.out" });
+    const get = follower(node, ["rotationX", "rotationY"], { duration: 0.5, ease: "power3.out" });
     node.addEventListener("pointermove", (e) => {
+      const [rx, ry] = get();
       const r = node.getBoundingClientRect();
       const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
       ry((px - 0.5) * max * 2);
@@ -107,18 +141,18 @@
       node.style.setProperty("--mx", (px * 100).toFixed(1) + "%");
       node.style.setProperty("--my", (py * 100).toFixed(1) + "%");
     });
-    node.addEventListener("pointerleave", () => { rx(0); ry(0); });
+    node.addEventListener("pointerleave", () => { const [rx, ry] = get(); rx(0); ry(0); });
   };
   HN.magnetic = (node, strength = 0.28) => {
     if (!fine || reduce) return;
-    const x = gsap.quickTo(node, "x", { duration: 0.4, ease: "power3.out" });
-    const y = gsap.quickTo(node, "y", { duration: 0.4, ease: "power3.out" });
+    const get = follower(node, ["x", "y"], { duration: 0.4, ease: "power3.out" });
     node.addEventListener("pointermove", (e) => {
+      const [x, y] = get();
       const r = node.getBoundingClientRect();
       x((e.clientX - r.left - r.width / 2) * strength);
       y((e.clientY - r.top - r.height / 2) * strength);
     });
-    node.addEventListener("pointerleave", () => { x(0); y(0); });
+    node.addEventListener("pointerleave", () => { const [x, y] = get(); x(0); y(0); });
   };
 
   /* ---------- celebration burst ---------- */
