@@ -8,7 +8,7 @@ Read in this order and use only what the rendered app actually uses:
 
 1. An existing `DESIGN.md` (preserve accepted decisions unless the user replaces them).
 2. `:root` in `css/app.css`.
-3. Shared classes (`.btn`, `.glass`, `.glow-border`, `.choice`, `.option`, `.seg`, `.field`, `.ticket`) and the `HN.*` UI helpers in `js/core.js`.
+3. Shared classes (`.btn`, `.glass`, `.glow-border`, `.choice`, `.option`, `.seg`, `.field`, `.ticket`) and the `HN.*` UI helpers in `js/ui.js`, `js/fx.js` and `js/art.js`.
 4. The four route templates in `index.html`.
 
 A value goes into the document only if it is a named token or used by at least two screens. Never turn one-off literals into tokens, and never invent token names.

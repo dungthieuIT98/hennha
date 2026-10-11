@@ -78,7 +78,7 @@ Motion is part of the product, but it must be cheap and interruptible.
 
 ## 6. Verify (Implement mode)
 
-1. `node --check js/*.js`.
+1. `node --check` on every file in `js/*.js` and `js/screens/*.js`.
 2. Serve the folder (`python -m http.server 8765 --bind 127.0.0.1`) and drive it with `playwright-core` plus the system Chrome (`executablePath`). Install it in the scratchpad, never in the project.
 3. Exercise the changed flow by mouse and keyboard (Tab, Enter, Escape). Use `{ force: true }` when clicking elements that loop-animate.
 4. Screenshot at 390px and 1280px and look at them. Check for zero `pageerror` events (`favicon.ico` 404 is known).
