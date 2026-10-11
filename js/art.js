@@ -28,17 +28,17 @@
     sv("ellipse", { class: "nh-gloss", cx: 19, cy: 15, rx: 8, ry: 4.5, transform: "rotate(-32 19 15)" }, svg);
     return svg;
   }
-  HN.loveEnvelope = ({ to, letter = "Hẹn nha?" }) => {
+  HN.loveEnvelope = ({ to, letter = HN.t("env.letter") }) => {
     const env = el("div", "wenv");
     const paper = el("div", "wenv-letter");
     paper.append(el("span", null, letter));
     const front = el("div", "wenv-front");
-    front.append(el("span", "wenv-to", "Gửi " + to));
+    front.append(el("span", "wenv-to", HN.t("env.to", { name: to })));
     const flap = el("div", "wenv-flap");
     flap.append(el("i"));
     const heart = el("button", "nheart beating");
     heart.type = "button";
-    heart.setAttribute("aria-label", "Mở thư");
+    heart.setAttribute("aria-label", HN.t("env.open"));
     heart.append(neonHeart());
     env.append(el("div", "wenv-back"), paper, front, flap, heart);
     return env;
@@ -123,20 +123,20 @@
     r.append(b, t);
     return r;
   }
-  HN.dodgeText = (n) => (n >= HN.NO_LIMIT ? "Né " + n + " lần, YES tự bấm" : n ? "Né " + n + " lần rồi YES" : "YES ngay lần đầu");
+  HN.dodgeText = (n) => HN.t(n >= HN.NO_LIMIT ? "dodge.auto" : n ? "dodge.then" : "dodge.none", { n });
   const ticketCode = (t) => "#" + String(t.code || "").toUpperCase().slice(0, 8);
   HN.ticket = (t) => {
     const tk = el("div", "ticket");
     tk.append(el("span", "holo"));
     const head = el("div", "t-head");
-    head.append(el("span", null, "★ VÉ CHO HAI NGƯỜI"));
+    head.append(el("span", null, HN.t("tk.head")));
     const names = el("div", "t-names");
     names.append(document.createTextNode(t.from + " "), el("span", "amp", "&"), document.createTextNode(" " + t.to));
-    tk.append(head, names, row("📅", "Khi nào", t.when || "Người ấy sẽ chọn"));
+    tk.append(head, names, row("📅", HN.t("tk.when"), t.when || HN.t("tk.theyPick")));
     const plans = HN.planList(t.plans);
-    if (!plans.length) tk.append(row("🍿", "Kèo", "Chưa chọn"));
-    plans.forEach((p, i) => tk.append(row(p.ico, plans.length > 1 ? "Kèo " + (i + 1) : "Kèo", p.name)));
-    tk.append(row("🙈", "Nút Không", HN.dodgeText(t.dodges)));
+    if (!plans.length) tk.append(row("🍿", HN.t("tk.plan"), HN.t("tk.notPicked")));
+    plans.forEach((p, i) => tk.append(row(p.ico, plans.length > 1 ? HN.t("tk.planN", { n: i + 1 }) : HN.t("tk.plan"), HN.planName(p))));
+    tk.append(row("🙈", HN.t("tk.noBtn"), HN.dodgeText(t.dodges)));
     tk.append(el("div", "t-perf"));
     const foot = el("div", "t-foot");
     foot.append(el("span", "t-bar"), el("span", "t-code", ticketCode(t)));
@@ -176,7 +176,7 @@
 
     g.textAlign = "center"; g.textBaseline = "alphabetic";
     g.fillStyle = "#ffd166"; g.font = "800 44px " + DISPLAY;
-    g.fillText("✦  CHỐT KÈO RỒI  ✦", W / 2, 300);
+    g.fillText(HN.t("tk.done"), W / 2, 300);
 
     const x = 90, y = 380, w = W - 180, h = 1200;
     rr(g, x, y, w, h, 56); g.fillStyle = "rgba(255,255,255,.09)"; g.fill();
@@ -185,7 +185,7 @@
     g.lineWidth = 4; g.strokeStyle = st; g.stroke();
 
     g.font = "800 34px " + DISPLAY; g.fillStyle = "#22d3ee";
-    g.textAlign = "left"; g.fillText("VÉ CHO HAI NGƯỜI", x + 64, y + 96);
+    g.textAlign = "left"; g.fillText(HN.t("tk.forTwo"), x + 64, y + 96);
     g.textAlign = "right"; g.fillText("★ ADMIT 2", x + w - 64, y + 96);
     const dash = (yy) => { g.save(); g.setLineDash([16, 14]); g.strokeStyle = "rgba(255,255,255,.25)"; g.lineWidth = 3; g.beginPath(); g.moveTo(x + 50, yy); g.lineTo(x + w - 50, yy); g.stroke(); g.restore(); };
     dash(y + 140);
@@ -201,11 +201,12 @@
     g.fillStyle = "#fff"; g.fillText(t.to, nx, y + 290);
 
     const plans = HN.planList(t.plans);
-    const rows = [["📅", "KHI NÀO", t.when || "Chưa chọn"]];
+    const up = (s) => s.toLocaleUpperCase(HN.t("locale"));
+    const rows = [["📅", up(HN.t("tk.when")), t.when || HN.t("tk.notPicked")]];
     const shown = plans.length > 3 ? plans.slice(0, 2) : plans;
-    shown.forEach((p, i) => rows.push([p.ico, plans.length > 1 ? "KÈO " + (i + 1) : "KÈO", p.name]));
-    if (plans.length > 3) rows.push(["✨", "VÀ THÊM", (plans.length - 2) + " kèo nữa"]);
-    rows.push(["🙈", "NÚT KHÔNG", HN.dodgeText(t.dodges)]);
+    shown.forEach((p, i) => rows.push([p.ico, up(plans.length > 1 ? HN.t("tk.planN", { n: i + 1 }) : HN.t("tk.plan")), HN.planName(p)]));
+    if (plans.length > 3) rows.push(["✨", up(HN.t("tk.more")), HN.t("tk.moreN", { n: plans.length - 2 })]);
+    rows.push(["🙈", up(HN.t("tk.noBtn")), HN.dodgeText(t.dodges)]);
     let ry = y + 420;
     rows.forEach(([ico, label, value], i) => {
       if (i) dash(ry - 68);
@@ -225,7 +226,7 @@
     g.fillText(ticketCode(t), x + w - 64, y + h - 66);
 
     g.textAlign = "center"; g.fillStyle = "rgba(255,255,255,.9)"; g.font = "800 40px " + DISPLAY;
-    g.fillText("Tạo thiệp tại " + HN.DOMAIN, W / 2, H - 150);
+    g.fillText(HN.t("tk.madeAt", { domain: HN.DOMAIN }), W / 2, H - 150);
     return c.toDataURL("image/png");
   };
 })();

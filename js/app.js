@@ -11,7 +11,9 @@
   }
   function mount(r) {
     document.body.dataset.route = r.name;
-    $("#app").replaceChildren($("#tpl-" + r.name).content.cloneNode(true));
+    const view = $("#tpl-" + r.name).content.cloneNode(true);
+    HN.applyI18n(view);
+    $("#app").replaceChildren(view);
     window.scrollTo(0, 0);
     try { SCREENS[r.name](r); } catch (e) { console.error(e); }
     HN.updateCount();
@@ -39,6 +41,8 @@
   function scrollToId(id) { const t = document.getElementById(id); if (t) t.scrollIntoView({ behavior: HN.reduce ? "auto" : "smooth", block: "start" }); }
 
   document.addEventListener("click", (e) => {
+    const lang = e.target.closest("[data-lang]");
+    if (lang) { HN.setLang(lang.dataset.lang); return; }
     const s = e.target.closest("[data-scroll]");
     if (s) {
       e.preventDefault();
@@ -48,7 +52,7 @@
     }
     if (e.target.closest("[data-new]") && HN.draft.get().published) HN.draft.clear();
     const soon = e.target.closest("[data-soon]");
-    if (soon) { e.preventDefault(); HN.toast(soon.dataset.soon + " sẽ có sớm"); }
+    if (soon) { e.preventDefault(); HN.toast(HN.t("soon", { x: HN.t(soon.dataset.soon) })); }
   });
   const topbar = $("#topbar");
   addEventListener("scroll", () => topbar.classList.toggle("scrolled", scrollY > 10), { passive: true });

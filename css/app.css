@@ -136,7 +136,15 @@ p { text-wrap: pretty; }
 .pill-link { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 999px; text-decoration: none; color: var(--text); font-weight: 700; font-size: .92rem;
   background: rgba(255, 255, 255, .05); border: 1px solid var(--stroke-2); }
 .pill-link b { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; display: inline-grid; place-items: center; font-size: .75rem; font-variant-numeric: tabular-nums; background: var(--grad); color: #fff; }
-body[data-route="n"] .top-nav { display: none; }
+/* language toggle: 34px pills, the ::after pads each hit area to 44px */
+.lang-sw { display: inline-flex; gap: 2px; padding: 2px; border-radius: 999px; background: rgba(255, 255, 255, .05); border: 1px solid var(--stroke-2); }
+.lang-sw button { position: relative; min-width: 44px; min-height: 34px; padding: 0 10px; border: 0; border-radius: 999px; background: none; cursor: pointer;
+  font: 800 .78rem/1 var(--mono); letter-spacing: .08em; color: var(--muted); transition: color .2s, background-color .2s; }
+.lang-sw button::after { content: ""; position: absolute; inset: -5px -1px; }
+.lang-sw button:hover { color: var(--text); }
+.lang-sw button[aria-pressed="true"] { background: var(--grad-btn); color: #fff; }
+.brand, .pill-link { white-space: nowrap; }
+body[data-route="n"] .top-nav > :not(.lang-sw) { display: none; }
 body.in-frame .topbar, body.in-frame .cursor-glow { display: none; }
 
 #app { position: relative; z-index: var(--z-content); padding: calc(96px + env(safe-area-inset-top)) 0 calc(60px + env(safe-area-inset-bottom)); }
@@ -608,6 +616,9 @@ dialog.closing::backdrop { opacity: 0; }
 @media (max-width: 600px) {
   .wrap { width: calc(100% - 28px); }
   .hide-sm { display: none; }
+  .topbar { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+  /* no room for both: show only the language you can switch to */
+  .lang-sw button[aria-pressed="true"] { display: none; }
   #app { padding-top: calc(84px + env(safe-area-inset-top)); }
   .hero-stage { height: 420px; overflow: hidden; margin-inline: -14px; }
   .stage-card { width: 280px; height: 360px; }

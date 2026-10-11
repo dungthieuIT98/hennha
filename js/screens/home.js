@@ -49,7 +49,7 @@
         const c = el("span", "mq-chip"), ico = el("i", null, p.ico);
         ico.setAttribute("aria-hidden", "true");
         if (k) c.setAttribute("aria-hidden", "true");
-        c.append(ico, document.createTextNode(p.name));
+        c.append(ico, document.createTextNode(HN.planName(p)));
         track.append(c);
       });
       host.append(track);
@@ -66,7 +66,7 @@
       const top = el("div", "step-top"), badge = el("span", "badge", s.ico);
       badge.setAttribute("aria-hidden", "true");
       top.append(el("span", "step-n", s.n), badge);
-      c.append(top, el("h3", null, s.title), el("p", null, s.text));
+      c.append(top, el("h3", null, HN.t("step." + s.id + ".t")), el("p", null, HN.t("step." + s.id + ".d")));
       host.append(c);
       HN.tilt(c, 6);
     });
@@ -150,7 +150,8 @@
         autoYes = gsap.delayedCall(1.3, () => yes.click());
         return;
       }
-      no.textContent = HN.NO_TEXTS[dodges % HN.NO_TEXTS.length];
+      const noTexts = HN.t("no.texts");
+      no.textContent = noTexts[dodges % noTexts.length];
       place(ys);
       gsap.to(yes, { scale: ys, duration: 0.4, ease: "back.out(2.5)" });
     }
@@ -175,7 +176,7 @@
       run.hidden = true;
       gsap.set([yes, no, stage, done], { clearProps: "all" });
       no.classList.remove("floating");
-      no.textContent = HN.NO_TEXTS[0];
+      no.textContent = HN.t("no.texts")[0];
       $(".btns", stage).append(no);
       done.hidden = true;
       stage.hidden = false;

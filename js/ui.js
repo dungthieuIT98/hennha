@@ -14,9 +14,9 @@
     function render(dir) {
       host.replaceChildren();
       const head = el("div", "cal-head");
-      const prev = el("button", "cal-nav", "‹"); prev.type = "button"; prev.setAttribute("aria-label", "Tháng trước");
-      const next = el("button", "cal-nav", "›"); next.type = "button"; next.setAttribute("aria-label", "Tháng sau");
-      const title = el("strong", null, "Tháng " + (view.getMonth() + 1) + ", " + view.getFullYear());
+      const prev = el("button", "cal-nav", "‹"); prev.type = "button"; prev.setAttribute("aria-label", HN.t("ui.prevMonth"));
+      const next = el("button", "cal-nav", "›"); next.type = "button"; next.setAttribute("aria-label", HN.t("ui.nextMonth"));
+      const title = el("strong", null, HN.fmtDate(view, "month"));
       prev.disabled = !opts.allowAll && view <= new Date(min.getFullYear(), min.getMonth(), 1);
       next.disabled = !opts.allowAll && view >= new Date(max.getFullYear(), max.getMonth(), 1);
       // render() rebuilds the grid, so put focus back on the matching control
@@ -32,7 +32,7 @@
       next.onclick = () => nav(1);
       head.append(prev, title, next);
       const grid = el("div", "cal-grid");
-      ["T2", "T3", "T4", "T5", "T6", "T7", "CN"].forEach((t) => grid.append(el("div", "cal-dow", t)));
+      HN.t("calDow").forEach((t) => grid.append(el("div", "cal-dow", t)));
       const firstDow = (view.getDay() + 6) % 7;
       for (let i = 0; i < firstDow; i++) grid.append(el("div"));
       const days = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
@@ -43,7 +43,7 @@
         const b = el("button", "cal-day", String(d)); b.type = "button";
         const isSel = !!selected && iso === HN.iso(selected);
         const ev = opts.events && opts.events[iso];
-        b.setAttribute("aria-label", HN.fmtDate(date) + (ev ? (ev.conflict ? ", có hẹn trùng giờ" : ", có hẹn") : ""));
+        b.setAttribute("aria-label", HN.fmtDate(date) + (ev ? HN.t(ev.conflict ? "ui.hasClash" : "ui.hasDate") : ""));
         b.setAttribute("aria-pressed", String(isSel));
         if (iso === todayIso) { b.classList.add("today"); b.setAttribute("aria-current", "date"); }
         if (isSel) b.classList.add("selected");
@@ -116,11 +116,11 @@
       };
     }
     const changed = () => { render(); if (opts.onChange) opts.onChange(hour, minute); };
-    const H = dropdown(hoursHost, "Giờ", "Chọn giờ", (v) => { hour = v; changed(); });
-    const M = dropdown(minsHost, "Phút", "Chọn phút", (v) => { minute = v; changed(); });
+    const H = dropdown(hoursHost, HN.t("c3.hour"), HN.t("ui.pickHour"), (v) => { hour = v; changed(); });
+    const M = dropdown(minsHost, HN.t("c3.min"), HN.t("ui.pickMin"), (v) => { minute = v; changed(); });
     function render() {
-      H.set(Array.from({ length: 24 }, (_, h) => ({ value: h, text: pad2(h) + " giờ", disabled: !!(opts.isHourDisabled && opts.isHourDisabled(h)) })), hour);
-      M.set([0, 30].map((m) => ({ value: m, text: pad2(m) + " phút", disabled: !!(opts.isMinuteDisabled && opts.isMinuteDisabled(hour, m)) })), minute);
+      H.set(Array.from({ length: 24 }, (_, h) => ({ value: h, text: HN.t("ui.hourItem", { v: pad2(h) }), disabled: !!(opts.isHourDisabled && opts.isHourDisabled(h)) })), hour);
+      M.set([0, 30].map((m) => ({ value: m, text: HN.t("ui.minItem", { v: pad2(m) }), disabled: !!(opts.isMinuteDisabled && opts.isMinuteDisabled(hour, m)) })), minute);
     }
     render();
     return { render, set(h, m) { hour = h; minute = m; render(); } };
@@ -163,10 +163,10 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove("show"), 2400);
   };
-  HN.copy = (text, msg = "Đã copy link") => {
+  HN.copy = (text, msg = HN.t("ui.copied")) => {
     const done = () => HN.toast(msg);
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => HN.toast("Không copy được, cậu giữ vào link để copy nhé"));
-    else HN.toast("Trình duyệt không cho copy tự động");
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => HN.toast(HN.t("ui.copyFail")));
+    else HN.toast(HN.t("ui.copyBlocked"));
   };
 
   /* ---------- dialogs: bottom sheet and ticket image viewer ---------- */
@@ -206,15 +206,15 @@
     const dlg = el("dialog", "shot");
     const img = el("img", "shot-img");
     img.src = url;
-    img.alt = "Ảnh thẻ kèo";
-    const hint = el("p", "shot-hint", "Nhấn giữ ảnh để lưu về máy");
+    img.alt = HN.t("ui.shotAlt");
+    const hint = el("p", "shot-hint", HN.t("ui.shotHint"));
     hint.id = "shot-" + HN.randomCode(6);
     dlg.setAttribute("aria-labelledby", hint.id);
     const row = el("div", "shot-actions");
-    const dl = el("a", "btn btn-ghost btn-sm", "Tải ảnh");
+    const dl = el("a", "btn btn-ghost btn-sm", HN.t("ui.download"));
     dl.href = url;
     dl.download = "hen-nha.png";
-    const closeBtn = el("button", "btn btn-sm", "Đóng");
+    const closeBtn = el("button", "btn btn-sm", HN.t("ui.close"));
     closeBtn.type = "button";
     closeBtn.autofocus = true;
     row.append(dl, closeBtn);

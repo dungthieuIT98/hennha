@@ -3,7 +3,6 @@
 (() => {
   const HN = window.HN;
   const { $, $$, el } = HN;
-  const LABELS = ["Nhân vật", "Lời thoại", "Thời gian", "Kịch bản", "Chiếu thử", "Phát hành"];
 
   // fields follow the id convention f<Key> wrapper, h<Key> error hint, c<Key> counter
   const field = (key, input, max) => (error, show = true) => {
@@ -32,10 +31,10 @@
     const bar = el("div", "st-bar");
     bar.append(el("i", "st-fill"));
     stepperHost.append(bar);
-    LABELS.forEach((l, i) => {
+    HN.t("create.steps").forEach((l, i) => {
       const b = el("button", "st-node");
       b.type = "button";
-      b.setAttribute("aria-label", "Bước " + (i + 1) + ": " + l);
+      b.setAttribute("aria-label", HN.t("create.stepAria", { n: i + 1, label: l }));
       b.append(el("span", "st-dot", String(i + 1)), el("span", "st-label", l));
       b.addEventListener("click", () => { if (i + 1 < step && step < 7) goStep(i + 1); });
       stepperHost.append(b);
@@ -84,8 +83,8 @@
       from.value = d.from || "";
       to.value = d.to || "";
       function refresh() {
-        const pf = HN.checkText(from.value, { max: 20, emptyMsg: "Bạn chưa nhập tên" });
-        const pt = HN.checkText(to.value, { max: 20, emptyMsg: "Bạn chưa nhập tên người ấy" });
+        const pf = HN.checkText(from.value, { max: 20, emptyMsg: HN.t("c1.errFrom") });
+        const pt = HN.checkText(to.value, { max: 20, emptyMsg: HN.t("c1.errTo") });
         showFrom(pf, touched);
         showTo(pt, toTouched);
         $("#next1").disabled = !!pf || !!pt;
@@ -104,13 +103,13 @@
     const showMsg = field("Msg", msg, 100);
     msg.value = d.message || "";
     function refreshMsg() {
-      const p = HN.checkText(msg.value, { max: 100, emptyMsg: "Bạn chưa viết câu rủ" });
+      const p = HN.checkText(msg.value, { max: 100, emptyMsg: HN.t("c2.errMsg") });
       showMsg(p);
       $("#next2").disabled = !!p;
       HN.draft.set({ message: p ? "" : HN.clean(msg.value) });
     }
     const tplButtons = [];
-    const tplText = (t) => HN.renderTemplate(t.text, HN.draft.get().to);
+    const tplText = (t) => HN.renderTemplate(HN.t("tpl." + t.id), HN.draft.get().to);
     function markTemplates() {
       const now = HN.clean(msg.value);
       tplButtons.forEach(({ b, t }) => {
@@ -171,7 +170,7 @@
       });
       function update() {
         const ok = st.date && st.hour != null && st.minute != null && !HN.isPast(st.date, st.hour, st.minute);
-        $("#when").textContent = ok ? "✓ " + HN.fmtWhen(st.date, st.hour, st.minute) : st.date ? "Chọn giờ và phút" : "Chọn một ngày trên lịch";
+        $("#when").textContent = ok ? "✓ " + HN.fmtWhen(st.date, st.hour, st.minute) : HN.t(st.date ? "c3.pickTime" : "c3.pickDay");
         $("#when").classList.toggle("ok", !!ok);
         $("#next3").disabled = !ok;
         HN.draft.set({ timeMode: "fixed", date: st.date, hour: st.hour, minute: st.minute });
@@ -193,11 +192,11 @@
           b.setAttribute("aria-pressed", String(chosen.has(p.id)));
           const badge = el("span", "badge", p.ico);
           badge.setAttribute("aria-hidden", "true");
-          b.append(badge, document.createTextNode(p.name));
+          b.append(badge, document.createTextNode(HN.planName(p)));
           b.addEventListener("click", () => {
             if (chosen.has(p.id)) chosen.delete(p.id); else chosen.add(p.id);
             render();
-            const nb = $$(".option", host).find((x) => x.textContent.endsWith(p.name));
+            const nb = $$(".option", host).find((x) => x.textContent.endsWith(HN.planName(p)));
             if (nb) {
               nb.focus({ preventScroll: true });
               gsap.fromTo($(".badge", nb), { scale: 0.5, rotation: -30 }, { scale: 1, rotation: 0, duration: 0.5, ease: "back.out(3)" });
@@ -213,7 +212,7 @@
         const nAn = HN.PLANS.filter((p) => p.group === "an" && chosen.has(p.id)).length;
         $("#cntAn").textContent = nAn ? "(" + nAn + ")" : "";
         $("#cntChoi").textContent = plans.length - nAn ? "(" + (plans.length - nAn) + ")" : "";
-        $("#counter").textContent = plans.length ? "Đã chọn " + plans.length + " kèo" : "Chọn ít nhất 1 kèo";
+        $("#counter").textContent = plans.length ? HN.t("c4.count", { n: plans.length }) : HN.t("c4.none");
         $("#next4").disabled = plans.length === 0;
         HN.draft.set({ plans });
       }
@@ -231,9 +230,9 @@
     function loadPreview() {
       const enc = HN.encodeInvite(draftInvite("preview"));
       const ok = !!HN.decodeInvite(enc);
-      if (!ok) HN.toast("Chưa đủ dữ liệu, đang chiếu bằng thiệp mẫu");
+      if (!ok) HN.toast(HN.t("c5.fallback"));
       const f = document.createElement("iframe");
-      f.title = "Chiếu thử luồng người nhận";
+      f.title = HN.t("c5.frame");
       f.src = HN.inviteUrl((ok ? enc : "demo") + "/preview");
       $("#previewHost").replaceChildren(f);
     }
@@ -242,13 +241,13 @@
     $("#editBtn").addEventListener("click", () => {
       HN.sheet((sh, close) => {
         const list = el("div", "edit-list");
-        ["Cảnh 1 · Nhân vật chính", "Cảnh 2 · Lời thoại", "Cảnh 3 · Thời gian", "Cảnh 4 · Kịch bản"].forEach((label, i) => {
-          const b = el("button", "btn btn-ghost btn-block", label);
+        ["c1", "c2", "c3", "c4"].forEach((c, i) => {
+          const b = el("button", "btn btn-ghost btn-block", HN.t(c + ".eyebrow"));
           b.type = "button";
           b.addEventListener("click", () => close(() => goStep(i + 1)));
           list.append(b);
         });
-        sh.append(el("h3", null, "Sửa cảnh nào?"), el("p", "sub", "Dữ liệu đã nhập vẫn được giữ nguyên"), list);
+        sh.append(el("h3", null, HN.t("c5.editH")), el("p", "sub", HN.t("c5.editSub")), list);
       });
     });
     $("#next5").addEventListener("click", () => goStep(6));
@@ -264,10 +263,10 @@
           b.type = "button";
           b.setAttribute("aria-pressed", String(p.id === chosen));
           const body = el("span", "c-body");
-          const t = el("span", "c-title", p.title);
-          if (p.pill) t.append(el("span", "pill", p.pill));
-          body.append(t, el("span", "c-sub", p.sub));
-          b.append(el("span", "dot"), body, el("b", "c-price", p.price));
+          const t = el("span", "c-title", HN.t("price." + p.id + ".t"));
+          if (p.pill) t.append(el("span", "pill", HN.t("price." + p.id + ".pill")));
+          body.append(t, el("span", "c-sub", HN.t("price." + p.id + ".s")));
+          b.append(el("span", "dot"), body, el("b", "c-price", HN.fmtVnd(p.price)));
           b.addEventListener("click", () => {
             chosen = p.id;
             HN.draft.set({ plan: chosen });
@@ -293,12 +292,12 @@
         (Array.isArray(log) ? log : []).push({ plan: chosen, at: new Date().toISOString() });
         HN.local.set("hn-fakedoor", log);
         HN.sheet((sh, close) => {
-          const ok = el("button", "btn btn-block", "Nhận thiệp miễn phí");
+          const ok = el("button", "btn btn-block", HN.t("c6.freeBtn"));
           ok.type = "button";
           ok.addEventListener("click", () => close(() => publish(chosen)));
           const gift = el("div", "big-emoji", "🎁");
           gift.setAttribute("aria-hidden", "true");
-          sh.append(gift, el("h3", null, "Sắp mở bán!"), el("p", "sub", "Gói trả phí sẽ mở trong thời gian tới. Hôm nay tụi mình tặng bạn thiệp này miễn phí."), ok);
+          sh.append(gift, el("h3", null, HN.t("c6.soonH")), el("p", "sub", HN.t("c6.soonP")), ok);
         });
       });
     })();
@@ -306,11 +305,11 @@
     function publish(plan) {
       const inv = draftInvite(HN.randomCode(8));
       const enc = HN.encodeInvite(inv);
-      if (!HN.decodeInvite(enc)) { HN.toast("Thiệp còn thiếu thông tin, kiểm tra lại các cảnh nhé"); return; }
+      if (!HN.decodeInvite(enc)) { HN.toast(HN.t("c6.missing")); return; }
       const url = HN.inviteUrl(enc);
       const created = HN.today();
       HN.invites.add({
-        code: inv.code, name: inv.to ? "Thiệp gửi " + inv.to : HN.cut(inv.message, 40), url,
+        code: inv.code, name: inv.to ? HN.t("inv.for", { name: inv.to }) : HN.cut(inv.message, 40), url,
         created: HN.iso(created), expires: HN.iso(HN.addYears(created, 1)), plan, consentAt: new Date().toISOString(), ref: HN.session.get("hn-ref", null),
       });
       HN.draft.set({ published: { code: inv.code, url } });
@@ -333,7 +332,7 @@
       $("#cShare").textContent = HN.len(share.value) + "/100";
       $("#fShare").classList.toggle("invalid", !!p);
       share.setAttribute("aria-invalid", String(!!p));
-      $("#hShare").textContent = p || "Gửi kèm một câu để người ấy biết là bạn gửi, đừng gửi link trơn";
+      $("#hShare").textContent = p || HN.t("c7.shareHint");
       $("#hShare").classList.toggle("error", !!p);
       $("#shareBtn").disabled = !!p;
     };
@@ -345,16 +344,16 @@
       if (!pub) return;
       const text = HN.clean(share.value);
       if (navigator.share) { try { await navigator.share({ text, url: pub.url }); } catch (_) { /* cancelled */ } return; }
-      HN.copy((text ? text + " " : "") + pub.url, "Đã copy lời nhắn và link");
+      HN.copy((text ? text + " " : "") + pub.url, HN.t("c7.copied"));
     });
     const fb = $("#fbOpts");
     HN.SOURCES.forEach((s) => {
-      const b = el("button", "chip", s);
+      const b = el("button", "chip", HN.t("src." + s));
       b.type = "button";
       b.addEventListener("click", () => {
         HN.local.set("hn-source", { v: s, code: (HN.draft.get().published || {}).code, at: new Date().toISOString() });
         b.classList.add("selected");
-        gsap.to(fb.children, { autoAlpha: 0, y: -8, stagger: 0.03, duration: 0.2, onComplete: () => { $("#fb").replaceChildren(el("p", "thanks", "Cảm ơn bạn đã góp ý! 💜")); gsap.from(".thanks", { scale: 0.6, autoAlpha: 0, duration: 0.4, ease: "back.out(2.5)" }); } });
+        gsap.to(fb.children, { autoAlpha: 0, y: -8, stagger: 0.03, duration: 0.2, onComplete: () => { $("#fb").replaceChildren(el("p", "thanks", HN.t("c7.thanks"))); gsap.from(".thanks", { scale: 0.6, autoAlpha: 0, duration: 0.4, ease: "back.out(2.5)" }); } });
       });
       fb.append(b);
     });

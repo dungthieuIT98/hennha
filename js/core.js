@@ -78,17 +78,18 @@
   HN.clean = (v) => String(v == null ? "" : v).normalize("NFC").replace(/\s+/g, " ").trim();
   HN.len = (v) => [...String(v == null ? "" : v)].length;
   HN.cut = (v, n) => [...String(v)].slice(0, n).join("");
-  HN.checkText = (value, { required = true, max = 20, emptyMsg = "Bạn chưa nhập" } = {}) => {
+  HN.checkText = (value, { required = true, max = 20, emptyMsg = HN.t("err.required") } = {}) => {
     const s = HN.clean(value);
     if (!s) return required ? emptyMsg : "";
-    if (HN.len(s) > max) return "Dài quá, tối đa " + max + " ký tự";
-    if (hasBadChar(s)) return "Có ký tự không hợp lệ";
-    if (URL_RE.test(s)) return "Không được chứa link";
-    if (PHONE_RE.test(s)) return "Không được chứa số điện thoại";
+    if (HN.len(s) > max) return HN.t("err.max", { n: max });
+    if (hasBadChar(s)) return HN.t("err.char");
+    if (URL_RE.test(s)) return HN.t("err.link");
+    if (PHONE_RE.test(s)) return HN.t("err.phone");
     return "";
   };
   HN.renderTemplate = (text, to) => {
-    const out = text.replace(/\{to\}/g, HN.clean(to) || "cậu");
+    const name = HN.clean(to) || HN.t("you");
+    const out = text.replace(/\{to\}/g, () => name);
     return out.charAt(0).toUpperCase() + out.slice(1);
   };
   const seg = window.Intl && Intl.Segmenter ? new Intl.Segmenter("vi", { granularity: "grapheme" }) : null;
@@ -96,10 +97,10 @@
 
   HN.planById = (id) => HN.PLANS.find((p) => p.id === id);
   HN.planList = (ids) => (ids || []).map(HN.planById).filter(Boolean);
-  HN.planText = (ids) => HN.planList(ids).map((p) => p.name).join(", ");
+  HN.planName = (p) => HN.t("plan." + p.id);
+  HN.planText = (ids) => HN.planList(ids).map(HN.planName).join(", ");
 
-  /* ---------- dates ---------- */
-  const DOW = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+  /* ---------- dates (formats come from strings.js "fmt.*") ---------- */
   const pad2 = (n) => String(n).padStart(2, "0");
   HN.pad2 = pad2;
   HN.iso = (d) => d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
@@ -111,12 +112,18 @@
   HN.validDate = (s) => { const d = HN.parseISO(s); return !!d && HN.iso(d) === s; };
   HN.today = () => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; };
   HN.addYears = (d, n) => { const e = new Date(d); e.setFullYear(e.getFullYear() + n); return e; };
-  HN.fmtDate = (d) => DOW[d.getDay()] + ", " + pad2(d.getDate()) + "/" + pad2(d.getMonth() + 1) + "/" + d.getFullYear();
+  const dateVars = (d) => ({
+    dow: HN.t("dow")[d.getDay()], dows: HN.t("dowShort")[d.getDay()], d: d.getDate(), dd: pad2(d.getDate()), mm: pad2(d.getMonth() + 1),
+    mon: HN.t("months")[d.getMonth()], month: HN.t("monthsLong")[d.getMonth()], yyyy: d.getFullYear(),
+  });
+  // style: "date" (weekday, full date), "short" (weekday, day and month), "day" (full date), "month" (month and year)
+  HN.fmtDate = (d, style = "date") => HN.t("fmt." + style, dateVars(d));
   HN.fmtWhen = (isoDate, h, m) => {
     const d = HN.parseISO(isoDate);
     if (!d || h == null || m == null) return "";
-    return HN.fmtDate(d) + " lúc " + pad2(h) + ":" + pad2(m);
+    return HN.t("fmt.when", { date: HN.fmtDate(d), time: pad2(h) + ":" + pad2(m) });
   };
+  HN.fmtVnd = (n) => (n ? HN.t("price.vnd", { n: n.toLocaleString(HN.t("locale")) }) : HN.t("price.zero"));
   HN.nextSaturday = () => { const d = HN.today(); d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7)); return d; };
   HN.isPast = (isoDate, h, m) => {
     if (!isoDate || h == null) return false;

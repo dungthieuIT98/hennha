@@ -3,8 +3,7 @@
 (() => {
   const HN = window.HN;
   const { $, $$, el, pad2 } = HN;
-  const DOW_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-  const DEMO = () => ({ code: "demo00", from: "Minh", to: "Lan", message: "Lan ơi, cuối tuần này đi chơi với tớ nha?", timeMode: "fixed", date: HN.iso(HN.nextSaturday()), hour: 19, minute: 30, plans: ["trasua", "cafe", "xemphim", "daoho"] });
+  const DEMO = () => ({ code: "demo00", from: "Minh", to: "Lan", message: HN.renderTemplate(HN.t("tpl.t1"), "Lan"), timeMode: "fixed", date: HN.iso(HN.nextSaturday()), hour: 19, minute: 30, plans: ["trasua", "cafe", "xemphim", "daoho"] });
 
   HN.SCREENS.n = (r) => {
     const app = $("#app");
@@ -13,19 +12,21 @@
     const DEMO_MODE = key === "demo";
     const inv = DEMO_MODE ? DEMO() : HN.decodeInvite(key);
     if (!inv) {
-      app.replaceChildren($("#tpl-gone").content.cloneNode(true));
+      const view = $("#tpl-gone").content.cloneNode(true);
+      HN.applyI18n(view);
+      app.replaceChildren(view);
       gsap.fromTo(".gone > *", { y: 30, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.08, duration: 0.6, ease: "back.out(1.6)", clearProps: "transform,opacity" });
       HN.loop(gsap.to(".gone .big-emoji", { y: -10, rotation: 8, duration: 1.4, yoyo: true, repeat: -1, ease: "sine.inOut" }));
       return;
     }
-    const greet = inv.to || "cậu";
+    const greet = inv.to || HN.t("you");
     const ans = { date: inv.date, hour: inv.hour, minute: inv.minute, plans: inv.plans, name: inv.to, dodges: 0 };
     const steps = $$(".rstep", app);
     let step = 1, busy = false;
     const ENTER = {};
 
     $("#askTitle").textContent = inv.message;
-    $("#endSub").textContent = PREVIEW ? "Đây là màn người ấy thấy sau khi gửi" : inv.from + " sẽ nhận được câu trả lời của cậu";
+    $("#endSub").textContent = PREVIEW ? HN.t("recv.previewEnd") : HN.t("recv.willGet", { name: inv.from });
     HN.mountLotties(steps[0]);
 
     function goTo(n) {
@@ -62,22 +63,22 @@
     $("#dMsg").textContent = inv.message;
     const day = HN.parseISO(inv.date);
     const hasTime = inv.hour != null && inv.minute != null;
-    $("#dWhen").textContent = day ? DOW_SHORT[day.getDay()] + " · " + pad2(day.getDate()) + "/" + pad2(day.getMonth() + 1) + (hasTime ? " · " + pad2(inv.hour) + ":" + pad2(inv.minute) : "") : "Chưa chốt";
+    $("#dWhen").textContent = day ? HN.fmtDate(day, "short") + (hasTime ? " · " + pad2(inv.hour) + ":" + pad2(inv.minute) : "") : HN.t("recv.unset");
     const target = day && hasTime ? new Date(day.getFullYear(), day.getMonth(), day.getDate(), inv.hour, inv.minute) : null;
     function tick() {
       const left = $("#dLeft");
       if (!target) { left.textContent = "—"; return; }
       const ms = target - Date.now();
-      if (ms <= 0) { left.textContent = "Tới giờ rồi!"; return; }
+      if (ms <= 0) { left.textContent = HN.t("recv.now"); return; }
       const s = Math.floor(ms / 1000);
       left.textContent = Math.floor(s / 86400) + "d " + pad2(Math.floor(s / 3600) % 24) + ":" + pad2(Math.floor(s / 60) % 60) + ":" + pad2(s % 60);
     }
     const plans = HN.planList(inv.plans);
-    $("#dCount").textContent = plans.length + " kèo";
+    $("#dCount").textContent = HN.t("recv.plans", { n: plans.length });
     plans.forEach((p, i) => {
       const li = el("li");
       const txt = el("div");
-      txt.append(el("b", null, p.name), el("small", null, p.group === "an" ? "Ăn uống" : "Đi chơi"));
+      txt.append(el("b", null, HN.planName(p)), el("small", null, HN.t("group." + p.group)));
       const ico = el("span", "ico", p.ico);
       ico.setAttribute("aria-hidden", "true");
       li.append(ico, txt, el("span", "n", "#" + pad2(i + 1)));
@@ -123,7 +124,7 @@
     function morph() {
       const from = letter.getBoundingClientRect();
       $("#love").hidden = true;
-      $("#loveEyebrow").textContent = "Thư từ " + inv.from;
+      $("#loveEyebrow").textContent = HN.t("recv.letterFrom", { name: inv.from });
       const dash = $("#dash");
       dash.hidden = false;
       const to = dash.getBoundingClientRect();
@@ -173,7 +174,8 @@
       const cx = yr.left + yr.width / 2, cy = yr.top + yr.height / 2, hw = (yr.width * k) / 2 + 24, hh = (yr.height * k) / 2 + 24;
       gsap.to(yesBtn, { scale: ys, duration: 0.4, ease: "back.out(2.5)" });
       if (ans.dodges >= HN.NO_LIMIT) { flee(); return; }
-      noBtn.textContent = HN.NO_TEXTS[ans.dodges % HN.NO_TEXTS.length];
+      const noTexts = HN.t("no.texts");
+      noBtn.textContent = noTexts[ans.dodges % noTexts.length];
       toBody();
       const w = noBtn.offsetWidth, h = noBtn.offsetHeight, pad = 14, top = 76;
       const maxX = Math.max(pad, innerWidth - w - pad), maxY = Math.max(top, innerHeight - h - pad);
@@ -227,8 +229,8 @@
       saving = true;
       const btn = $("#saveBtn"), label = btn.textContent;
       btn.setAttribute("aria-busy", "true");
-      btn.textContent = "Đang tạo ảnh…";
-      try { HN.shot(await HN.ticketImage(ticketData())); } catch (e) { console.error(e); HN.toast("Không tạo được ảnh, cậu chụp màn hình giúp tớ nhé"); }
+      btn.textContent = HN.t("recv.saving");
+      try { HN.shot(await HN.ticketImage(ticketData())); } catch (e) { console.error(e); HN.toast(HN.t("recv.saveFail")); }
       btn.textContent = label;
       btn.removeAttribute("aria-busy");
       saving = false;
@@ -236,19 +238,19 @@
     $("#calBtn").addEventListener("click", () => {
       const range = HN.eventRange(ans.date, ans.hour, ans.minute);
       if (!range) return;
-      const title = "Hẹn với " + inv.from, details = "Kèo: " + HN.planText(ans.plans);
+      const title = HN.t("cal.title", { name: inv.from }), details = HN.t("cal.details", { plans: HN.planText(ans.plans) });
       const icsUrl = URL.createObjectURL(new Blob([HN.icsText(title, details, range)], { type: "text/calendar" }));
       HN.sheet((sh) => {
         const g = el("a", "btn btn-block", "Google Calendar");
         g.href = HN.gcalUrl(title, details, range); g.target = "_blank"; g.rel = "noopener noreferrer";
-        const i = el("a", "btn btn-ghost btn-block", "Lịch iPhone (.ics)");
+        const i = el("a", "btn btn-ghost btn-block", HN.t("recv.ics"));
         i.href = icsUrl; i.download = "hen-nha.ics";
-        sh.append(el("h3", null, "Thêm vào lịch"), el("p", "sub", HN.fmtWhen(ans.date, ans.hour, ans.minute)), g, i);
+        sh.append(el("h3", null, HN.t("addCal")), el("p", "sub", HN.fmtWhen(ans.date, ans.hour, ans.minute)), g, i);
       });
       setTimeout(() => URL.revokeObjectURL(icsUrl), 120000);
     });
     $("#mineBtn").addEventListener("click", () => {
-      if (PREVIEW || HN.IN_FRAME) { HN.toast("Bản thật: mở trang tạo thiệp có gắn mã giới thiệu"); return; }
+      if (PREVIEW || HN.IN_FRAME) { HN.toast(HN.t("recv.mineDemo")); return; }
       HN.session.set("hn-ref", inv.code);
       location.hash = "#/create";
     });
