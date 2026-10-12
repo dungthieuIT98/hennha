@@ -7,7 +7,7 @@
 
   function route() {
     const parts = location.hash.replace(/^#\/?/, "").split("/");
-    return { name: ({ create: "create", n: "n", q: "q" })[parts[0]] || "home", parts };
+    return { name: ({ create: "create", n: "n", q: "q", login: "login" })[parts[0]] || "home", parts };
   }
   function mount(r) {
     document.body.dataset.route = r.name;
@@ -19,6 +19,17 @@
     HN.updateCount();
     if (r.name === "home" && pendingScroll) { const id = pendingScroll; pendingScroll = null; setTimeout(() => scrollToId(id), 120); }
   }
+  // creating an invite needs a signed-in user; no answer from the server counts as not signed in
+  function enter(r, token, then) {
+    const go = () => { mount(r); if (then) then(); };
+    if (r.name !== "create") { go(); return; }
+    HN.fetchMe().catch(() => null).then((user) => {
+      if (token !== navToken) return;
+      if (user) { go(); return; }
+      HN.session.set("hn-after-login", "create");
+      location.replace("#/login/need");
+    });
+  }
   function render() {
     const r = route();
     const token = ++navToken;
@@ -26,13 +37,12 @@
     $$("body > .runaway-no, body > dialog").forEach((n) => n.remove());
     const app = $("#app");
     gsap.killTweensOf(app);
-    if (first) { first = false; mount(r); return; }
+    if (first) { first = false; enter(r, token); return; }
     gsap.to(app, {
       opacity: 0, y: -12, duration: 0.18, ease: "power2.in",
       onComplete: () => {
         if (token !== navToken) return;
-        mount(r);
-        gsap.fromTo(app, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", clearProps: "transform,opacity" });
+        enter(r, token, () => gsap.fromTo(app, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", clearProps: "transform,opacity" }));
       },
     });
   }

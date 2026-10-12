@@ -9,8 +9,8 @@
   const key = (a) => a.date + "T" + pad2(a.hour) + ":" + pad2(a.minute);
   const gcal = (a) => HN.gcalUrl(HN.t("cal.title", { name: a.name }), HN.t("cal.details", { plans: HN.planText(a.plans) }), HN.eventRange(a.date, a.hour, a.minute));
   const linkBtn = (text, href) => { const a = el("a", "btn btn-ghost btn-sm", text); a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer"; return a; };
-  // invites stored before expiry existed (and the samples) expire one year after creation
-  const withExpiry = (list) => list.map((i) => (i.expires ? i : Object.assign(i, { expires: HN.iso(HN.addYears(HN.parseISO(i.created), 1)) })));
+  // invites stored before expiry existed (and the samples) expire with the browser's retention after creation
+  const withExpiry = (list) => list.map((i) => (i.expires ? i : Object.assign(i, { expires: HN.iso(HN.addDays(HN.parseISO(i.created), HN.KEEP_DAYS)) })));
 
   const mine = () => {
     const base = HN.inviteUrl("");
@@ -37,6 +37,7 @@
   };
 
   HN.SCREENS.q = () => {
+    HN.syncOutbox();
     let useSample = false;
     let INVITES = withExpiry(mine());
 

@@ -49,17 +49,47 @@
   HN.local = makeStore(() => localStorage);
   HN.session = makeStore(() => sessionStorage);
 
+  // signed-in user ({ name, email }) or null; throws when the server can't be reached
+  HN.fetchMe = async (signal) => {
+    const res = await fetch("/api/me", { credentials: "same-origin", headers: { Accept: "application/json" }, signal });
+    if (!res.ok) throw new Error("status " + res.status);
+    const data = await res.json();
+    return data && data.user && typeof data.user.email === "string" ? data.user : null;
+  };
+
   HN.draft = {
     get() { const d = HN.session.get("hn-draft", {}); return d && typeof d === "object" ? Object.assign({}, d) : {}; },
     set(patch) { const d = Object.assign(HN.draft.get(), patch); HN.session.set("hn-draft", d); return d; },
     clear() { HN.session.del("hn-draft"); },
   };
+  // the browser keeps invites, their answers and unsent copies for a week; the server copy (Drive) stays
+  HN.KEEP_DAYS = 7;
+  const fresh = (stamp) => { const t = typeof stamp === "number" ? stamp : Date.parse(stamp); return !t || Date.now() - t <= HN.KEEP_DAYS * 24 * 3600 * 1000; };
   HN.invites = {
-    list() { const l = HN.local.get("hn-invites", []); return Array.isArray(l) ? l.filter((x) => x && typeof x === "object") : []; },
-    add(inv) { const l = HN.invites.list(); l.unshift(inv); HN.local.set("hn-invites", l.slice(0, 50)); },
+    list() {
+      const raw = HN.local.get("hn-invites", []);
+      const all = Array.isArray(raw) ? raw.filter((x) => x && typeof x === "object") : [];
+      const kept = all.filter((x) => fresh(x.at || x.created));
+      if (kept.length !== all.length) HN.local.set("hn-invites", kept);
+      return kept;
+    },
+    add(inv) { const l = HN.invites.list(); l.unshift(Object.assign({ at: Date.now() }, inv)); HN.local.set("hn-invites", l.slice(0, 50)); },
   };
   HN.responses = {
-    all() { const r = HN.local.get("hn-responses", {}); return r && typeof r === "object" && !Array.isArray(r) ? r : {}; },
+    all() {
+      const r = HN.local.get("hn-responses", {});
+      if (!r || typeof r !== "object" || Array.isArray(r)) return {};
+      let changed = false;
+      Object.keys(r).forEach((code) => {
+        if (!Array.isArray(r[code])) return;
+        const kept = r[code].filter((x) => x && typeof x === "object" && fresh(x.at));
+        if (kept.length === r[code].length) return;
+        changed = true;
+        if (kept.length) r[code] = kept; else delete r[code];
+      });
+      if (changed) HN.local.set("hn-responses", r);
+      return r;
+    },
     for(code) { const r = HN.responses.all()[code]; return Array.isArray(r) ? r.filter((x) => x && typeof x === "object") : []; },
     add(code, resp) {
       const all = HN.responses.all();
@@ -68,6 +98,40 @@
       all[code] = list.slice(-100);
       HN.local.set("hn-responses", all);
     },
+  };
+
+  // new invites are copied to the server in the background; the copy waits here until the server confirms it
+  HN.outbox = {
+    list() {
+      const raw = HN.local.get("hn-outbox", []);
+      const all = Array.isArray(raw) ? raw.filter((x) => x && typeof x === "object" && x.invite && typeof x.invite === "object") : [];
+      const kept = all.filter((x) => fresh(x.at));
+      if (kept.length !== all.length) HN.local.set("hn-outbox", kept);
+      return kept;
+    },
+    add(invite) { const l = HN.outbox.list(); l.push({ at: Date.now(), invite }); HN.local.set("hn-outbox", l.slice(-50)); },
+    remove(code) { HN.local.set("hn-outbox", HN.outbox.list().filter((x) => x.invite.code !== code)); },
+  };
+  // each list drops what is past its week when it is read, so reading them once at load clears everything
+  HN.invites.list(); HN.responses.all(); HN.outbox.list();
+  let syncing = false;
+  // sends the waiting invites one by one and stops at the first failure; the next call picks up from there
+  HN.syncOutbox = async () => {
+    if (syncing) return;
+    syncing = true;
+    try {
+      for (const item of HN.outbox.list()) {
+        const res = await fetch("/api/invites", {
+          method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(item.invite),
+        });
+        if (res.ok) { HN.outbox.remove(item.invite.code); continue; }
+        const body = await res.json().catch(() => ({}));
+        // the server will never take these as they are, so they are not sent again
+        const final = res.status === 400 || res.status === 413 || (res.status === 409 && (body.error === "taken" || body.error === "full"));
+        if (!final) break; // signed out, busy, rate limited or Drive down: keep it for later
+        HN.outbox.remove(item.invite.code);
+      }
+    } catch (_) { /* offline: try again later */ } finally { syncing = false; }
   };
 
   /* ---------- text rules ---------- */
@@ -112,6 +176,7 @@
   HN.validDate = (s) => { const d = HN.parseISO(s); return !!d && HN.iso(d) === s; };
   HN.today = () => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; };
   HN.addYears = (d, n) => { const e = new Date(d); e.setFullYear(e.getFullYear() + n); return e; };
+  HN.addDays = (d, n) => { const e = new Date(d); e.setDate(e.getDate() + n); return e; };
   const dateVars = (d) => ({
     dow: HN.t("dow")[d.getDay()], dows: HN.t("dowShort")[d.getDay()], d: d.getDate(), dd: pad2(d.getDate()), mm: pad2(d.getMonth() + 1),
     mon: HN.t("months")[d.getMonth()], month: HN.t("monthsLong")[d.getMonth()], yyyy: d.getFullYear(),

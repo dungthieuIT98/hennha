@@ -19,6 +19,7 @@
   };
 
   HN.SCREENS.create = () => {
+    HN.syncOutbox();
     const app = $("#app");
     const steps = $$(".cstep", app);
     const ENTER = {};
@@ -310,9 +311,12 @@
       const created = HN.today();
       HN.invites.add({
         code: inv.code, name: inv.to ? HN.t("inv.for", { name: inv.to }) : HN.cut(inv.message, 40), url,
-        created: HN.iso(created), expires: HN.iso(HN.addYears(created, 1)), plan, consentAt: new Date().toISOString(), ref: HN.session.get("hn-ref", null),
+        created: HN.iso(created), expires: HN.iso(HN.addDays(created, HN.KEEP_DAYS)), plan, consentAt: new Date().toISOString(), ref: HN.session.get("hn-ref", null),
       });
       HN.draft.set({ published: { code: inv.code, url } });
+      // second copy goes to the server in the background; if it can't be sent now it is retried on a later visit
+      HN.outbox.add(inv);
+      HN.syncOutbox();
       HN.updateCount();
       goStep(7);
     }

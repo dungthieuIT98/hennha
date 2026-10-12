@@ -1,2 +1,6 @@
 # build output (node tools/build.mjs)
 dist/
+
+# local secrets and the SQLite accounts database
+.env
+data/

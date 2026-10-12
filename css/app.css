@@ -529,6 +529,16 @@ textarea.input { padding: 14px 16px 30px; line-height: 1.5; min-height: 100px; }
 .gone .big-emoji { display: inline-block; font-size: 72px; }
 .gone .btn { margin-top: 6px; }
 
+/* ============================ login ============================ */
+.login .btn + .btn, .login .btn + .hint, .login .hint + .btn { margin-top: 12px; }
+.login .hint { text-align: center; }
+.login .hint.error { margin: 0 0 14px; }
+.login .hint.need { margin: 0 0 14px; color: var(--text); font-weight: 700; }
+.btn-google { background: #fff; color: #1f1f1f; box-shadow: 0 10px 28px -12px rgba(0, 0, 0, .8), inset 0 -1px 0 rgba(0, 0, 0, .08); }
+.btn-google:hover { background: #fff; box-shadow: 0 0 0 4px rgba(34, 211, 238, .25), 0 10px 28px -12px rgba(0, 0, 0, .8); }
+.btn-google::after { display: none; }
+.btn-google svg { flex: none; }
+
 /* ============================ manage ============================ */
 .manage { max-width: 760px; }
 .q-head { text-align: center; margin-bottom: 22px; }
