@@ -1,5 +1,5 @@
 "use strict";
-/* HOME (G0): hero envelope, plan marquee, YES/NO demo, how-it-works tabs, ticket showcase. */
+/* HOME (G0): hero with a playable invite (envelope -> YES/NO -> stamp), journey map, ticket printer. */
 (() => {
   const HN = window.HN;
   const { $, $$, el } = HN;
@@ -8,25 +8,20 @@
     const app = $("#app");
     const chars = HN.split($(".hero-title .split", app));
     const env = HN.loveEnvelope({ to: "Lan" });
-    $("#heroLove").append(env);
-    const bloom = HN.bloom($("#heroBloom"));
+    $("#demoLove").append(env);
+    const bloom = HN.bloom($("#demoBloom"));
     HN.mountLotties(app);
 
     const intro = gsap.timeline({ delay: 0.05 })
-      .from(".chip-live", { y: -16, autoAlpha: 0, duration: 0.5, ease: "back.out(2)" })
-      .from(chars, { y: 60, scale: 0.4, rotation: () => gsap.utils.random(-30, 30), autoAlpha: 0, duration: 0.6, stagger: 0.02, ease: "back.out(2.2)" }, "-=0.2")
+      .from(chars, { y: 60, scale: 0.4, rotation: () => gsap.utils.random(-30, 30), autoAlpha: 0, duration: 0.6, stagger: 0.02, ease: "back.out(2.2)" })
       .fromTo(".grad-line", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.9, ease: "power3.inOut" }, "-=0.4")
-      .from(".stage-card", { scale: 0.6, rotation: -10, autoAlpha: 0, duration: 1.1, ease: "elastic.out(1, 0.6)" }, 0.25)
-      .from(".orbit", { scale: 0.4, autoAlpha: 0, stagger: 0.12, duration: 0.8, ease: "back.out(1.6)" }, 0.5)
-      .from(".float-badge", { scale: 0, autoAlpha: 0, stagger: 0.15, duration: 0.5, ease: "back.out(3)" }, 0.9)
+      .from("#demoCard", { scale: 0.7, rotation: -6, autoAlpha: 0, duration: 1.1, ease: "elastic.out(1, 0.6)" }, 0.25)
       .add(HN.growBloom(bloom, 1), 0.7);
     HN.onLeave(() => intro.kill());
 
-    $$("[data-scramble]", app).forEach(HN.scramble);
-    $$(".tilt", app).forEach((n) => HN.tilt(n, 9));
     $$(".magnetic", app).forEach((n) => HN.magnetic(n));
 
-    // hero envelope: floats, opens on heart tap, closes again
+    // the envelope floats; the heart opens it, then the card moves on to the question
     const envFloat = HN.loop(gsap.to(env, { y: -10, duration: 1.8, yoyo: true, repeat: -1, ease: "sine.inOut" }));
     const sway = HN.swayBloom(bloom, intro.duration());
     const heart = $(".nheart", env);
@@ -35,69 +30,83 @@
       if (envBusy) return;
       envBusy = true;
       HN.burstAt(heart, 24);
-      const t = HN.openLove(env).to({}, { duration: 1.6 }).add(() => {
-        HN.closeLove(env).add(() => { envBusy = false; });
-      });
+      const t = HN.openLove(env).to({}, { duration: 0.9 }).add(() => swap($("#dEnv"), $("#dQ"), $("#dYes")));
       HN.onLeave(() => t.kill());
     });
 
-    // marquee of plans
-    // the second copy only exists for the seamless loop, so screen readers skip it
-    const fill = (host, list) => {
-      const track = el("div", "mq-track");
-      for (let k = 0; k < 2; k++) list.forEach((p) => {
-        const c = el("span", "mq-chip"), ico = el("i", null, p.ico);
-        ico.setAttribute("aria-hidden", "true");
-        if (k) c.setAttribute("aria-hidden", "true");
-        c.append(ico, document.createTextNode(HN.planName(p)));
-        track.append(c);
-      });
-      host.append(track);
-    };
-    const half = Math.ceil(HN.PLANS.length / 2);
-    fill($("#mq1"), HN.PLANS.slice(0, half));
-    fill($("#mq2"), HN.PLANS.slice(half));
-
     initDemo();
+    initJourney(app);
 
-    // how it works: sender vs receiver tabs
-    const renderSteps = (host, list) => list.forEach((s) => {
-      const c = el("article", "step-card glass");
-      const top = el("div", "step-top"), badge = el("span", "badge", s.ico);
-      badge.setAttribute("aria-hidden", "true");
-      top.append(el("span", "step-n", s.n), badge);
-      c.append(top, el("h3", null, HN.t("step." + s.id + ".t")), el("p", null, HN.t("step." + s.id + ".d")));
-      host.append(c);
-      HN.tilt(c, 6);
-    });
-    const sender = $("#stepsSender"), receiver = $("#stepsReceiver");
-    renderSteps(sender, HN.SENDER_STEPS);
-    renderSteps(receiver, HN.RECEIVER_STEPS);
-    HN.segTabs(app, (tab) => {
-      const show = tab === "sender" ? sender : receiver;
-      const hide = show === sender ? receiver : sender;
-      if (!show.hidden) return;
-      hide.hidden = true;
-      show.hidden = false;
-      gsap.fromTo(show.children, { y: 30, autoAlpha: 0, rotationX: -25 }, { y: 0, autoAlpha: 1, rotationX: 0, stagger: 0.07, duration: 0.55, ease: "back.out(1.6)" });
-    });
-
-    // ticket showcase
+    // ticket printer: the ticket slides out of the slot once it scrolls into view
     const tk = HN.ticket({ from: "Minh", to: "Lan", when: HN.fmtWhen(HN.iso(HN.nextSaturday()), 19, 30), plans: ["trasua", "xemphim"], dodges: HN.NO_LIMIT, code: "k3x9m2pq" });
-    $("#homeTicket").append(tk);
+    $("#homeTicket .tk-feed").append(tk);
     HN.tilt(tk, 12);
-    const tkFloat = HN.loop(gsap.to("#homeTicket", { y: -12, duration: 2.4, yoyo: true, repeat: -1, ease: "sine.inOut" }));
+    if (!HN.reduce) {
+      gsap.set(tk, { yPercent: -102 });
+      onceVisible($(".ticket-sec", app), 0.4, () => {
+        const t = gsap.to(tk, { yPercent: 0, duration: 2.2, ease: "steps(14)" });
+        HN.onLeave(() => t.kill());
+      });
+    }
 
     HN.pauseOffscreen([
       [$(".hero-stage", app), [envFloat, sway]],
-      [$(".marquee", app), []],
-      [$(".demo", app), []],
-      [$(".ticket-sec", app), [tkFloat]],
       [$(".cta-band", app), []],
       ...$$(".grad-text", app).map((n) => [n, []]),
     ]);
     HN.reveal(app);
   };
+
+  // runs fn once when node is first at least `ratio` visible, then lets go of the observer
+  function onceVisible(node, ratio, fn) {
+    if (!("IntersectionObserver" in window)) { fn(); return; }
+    const io = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      io.disconnect();
+      fn();
+    }, { threshold: ratio });
+    io.observe(node);
+    HN.onLeave(() => io.disconnect());
+  }
+
+  // card stage change; hands focus to `focusTo` only when focus was inside the stage that goes away
+  function swap(from, to, focusTo) {
+    const had = from.contains(document.activeElement);
+    gsap.to(from, {
+      autoAlpha: 0, scale: 0.92, duration: 0.3,
+      onComplete: () => {
+        from.hidden = true;
+        to.hidden = false;
+        if (had && focusTo) focusTo.focus({ preventScroll: true });
+        gsap.fromTo(to, { autoAlpha: 0, scale: 0.92 }, { autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.6)" });
+      },
+    });
+  }
+
+  // 4 stops: the letter flies along the line, each stop pops as it passes
+  function initJourney(app) {
+    const wrap = $(".jmap-wrap", app), fill = $(".jline-fill", app), flyer = $(".jflyer", app);
+    const dots = $$(".jdot", app), labels = $$(".jmap b", app), pin = $(".jpin", app);
+    if (HN.reduce) return;
+    gsap.set(fill, { scaleX: 0 });
+    gsap.set(dots, { scale: 0, autoAlpha: 0 });
+    gsap.set(labels, { autoAlpha: 0, y: 8 });
+    gsap.set(pin, { autoAlpha: 0, y: -16 });
+    onceVisible(wrap, 0.5, () => {
+      const run = 2.4, dx = wrap.getBoundingClientRect().width * 0.75;
+      const tl = gsap.timeline()
+        .fromTo(flyer, { x: 0, autoAlpha: 1 }, { x: dx, duration: run, ease: "none" }, 0)
+        .to(fill, { scaleX: 1, duration: run, ease: "none" }, 0);
+      dots.forEach((d, i) => {
+        const at = (i / (dots.length - 1)) * run * 0.92;
+        tl.to(d, { scale: 1, autoAlpha: 1, duration: 0.4, ease: "back.out(2.5)" }, at)
+          .to(labels[i], { autoAlpha: 1, y: 0, duration: 0.35, ease: "power2.out" }, at + 0.1);
+      });
+      tl.to(flyer, { autoAlpha: 0, scale: 0.4, duration: 0.3, ease: "power2.in" }, run)
+        .to(pin, { autoAlpha: 1, y: 0, duration: 0.5, ease: "bounce.out" }, run);
+      HN.onLeave(() => tl.kill());
+    });
+  }
 
   // the NO button hops around inside the demo card, never over YES or (if it can help it) the question
   function initDemo() {
@@ -107,7 +116,7 @@
     const overlaps = (a, b, g) => !(a.x + a.w + g < b.x || b.x + b.w + g < a.x || a.y + a.h + g < b.y || b.y + b.h + g < a.y);
 
     function place(ys) {
-      const c = stage.getBoundingClientRect(), yr = yes.getBoundingClientRect(), qr = $(".q", stage).getBoundingClientRect();
+      const c = stage.getBoundingClientRect(), yr = yes.getBoundingClientRect(), qr = $(".q-wrap", stage).getBoundingClientRect();
       const k = ys / (gsap.getProperty(yes, "scale") || 1);
       const yw = yr.width * k, yh = yr.height * k;
       const yesBox = { x: yr.left + yr.width / 2 - c.left - yw / 2, y: yr.top + yr.height / 2 - c.top - yh / 2, w: yw, h: yh };
@@ -156,6 +165,19 @@
       gsap.to(yes, { scale: ys, duration: 0.4, ease: "back.out(2.5)" });
     }
     HN.dodgeable(no, dodge);
+
+    // a short rain of confetti inside the card, on top of the page-wide burst
+    const confetti = $("#dConfetti");
+    function rain() {
+      if (HN.reduce) return;
+      const h = confetti.offsetHeight;
+      const bits = Array.from({ length: 28 }, () => confetti.appendChild(el("i")));
+      const t = gsap.fromTo(bits,
+        { x: () => gsap.utils.random(0, confetti.offsetWidth), y: -20, rotation: () => gsap.utils.random(0, 360), autoAlpha: 1 },
+        { y: h + 20, x: "+=" + gsap.utils.random(-40, 40), rotation: "+=420", duration: () => gsap.utils.random(1.4, 2.4), ease: "power1.in", stagger: 0.04, onComplete: () => bits.forEach((b) => b.remove()) });
+      HN.onLeave(() => { t.kill(); bits.forEach((b) => b.remove()); });
+    }
+
     yes.addEventListener("click", () => {
       if (autoYes) autoYes.kill();
       HN.burstAt(yes);
@@ -168,6 +190,7 @@
           if (hadFocus) $("#dReplay").focus({ preventScroll: true });
           gsap.fromTo(done, { autoAlpha: 0, scale: 0.8 }, { autoAlpha: 1, scale: 1, duration: 0.6, ease: "back.out(2)" });
           gsap.fromTo(".stamp", { scale: 2.4, rotation: -30, autoAlpha: 0 }, { scale: 1, rotation: -8, autoAlpha: 1, duration: 0.5, ease: "back.out(3)", delay: 0.15 });
+          rain();
         },
       });
     });

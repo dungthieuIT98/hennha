@@ -42,7 +42,6 @@
 <template id="tpl-home">
 <section class="hero wrap">
   <div class="hero-copy">
-    <span class="chip-live"><i></i><span data-scramble data-i18n="home.chip"></span></span>
     <h1 class="hero-title"><span class="split" data-i18n="home.h1a"></span> <span class="grad-line" data-i18n="home.h1b"></span></h1>
     <p class="lead" data-reveal data-i18n="home.lead"></p>
     <div class="hero-cta" data-reveal>
@@ -50,108 +49,60 @@
       <a class="btn btn-ghost btn-lg magnetic" href="#/n/demo" data-i18n="home.sample"></a>
     </div>
   </div>
-  <div class="hero-stage">
-    <div class="orbit o1" aria-hidden="true"><div class="orbit-ring"><i class="p1"><span>🧋</span></i><i class="p2"><span>🎬</span></i></div></div>
-    <div class="orbit o2" aria-hidden="true"><div class="orbit-ring"><i class="p1"><span>🎡</span></i><i class="p2"><span>🍲</span></i><i class="p3"><span>📸</span></i></div></div>
-    <div class="stage-card glass glow-border tilt">
-      <div class="lottie lt-fill" data-lottie="hearts" data-loop="1" data-fit="slice"></div>
-      <span class="stage-eyebrow" data-i18n="letter.for"></span>
-      <div class="love" id="heroLove"><svg class="bloom" id="heroBloom" viewBox="-20 -20 440 400" aria-hidden="true"></svg></div>
-      <span class="stage-hint" data-i18n="home.stageHint"></span>
-    </div>
-    <div class="float-badge fb1" aria-hidden="true"><span>YES ✓</span></div>
-    <div class="float-badge fb2" aria-hidden="true"><span data-i18n="home.fbNo"></span></div>
-    <div class="float-badge fb3" aria-hidden="true"><span data-i18n="home.fbTicket"></span></div>
-  </div>
-</section>
-
-<section class="marquee" data-i18n-attr="aria-label:home.mq">
-  <div class="mq-row" id="mq1"></div>
-  <div class="mq-row rev" id="mq2"></div>
-</section>
-
-<section class="section wrap">
-  <div class="sec-head" data-reveal>
-    <span class="eyebrow" data-i18n="home.try"></span>
-    <h2><span data-i18n="home.tryH2a"></span><span class="grad-text" data-i18n="home.tryH2b"></span><span data-i18n="home.tryH2c"></span></h2>
-    <p data-i18n="home.tryPoem"></p>
-  </div>
-  <div class="demo glass glow-border" data-reveal>
-    <div class="demo-stage" id="dQ">
-      <p class="runaway" id="dRun" hidden data-i18n="ask.runaway"></p>
-      <div class="card-deco" aria-hidden="true">
-        <svg class="fl-defs" width="0" height="0" focusable="false">
-          <defs>
-            <g id="fl-leaf" fill="currentColor" fill-opacity=".5"><path d="M0 0C7-8 20-8 30 0C20 8 7 8 0 0Z"/></g>
-            <g id="fl-flower" fill="currentColor" fill-opacity=".72">
-              <path d="M0 0C-8-7-8-22 0-26C8-22 8-7 0 0Z"/>
-              <path d="M0 0C-8-7-8-22 0-26C8-22 8-7 0 0Z" transform="rotate(72)"/>
-              <path d="M0 0C-8-7-8-22 0-26C8-22 8-7 0 0Z" transform="rotate(144)"/>
-              <path d="M0 0C-8-7-8-22 0-26C8-22 8-7 0 0Z" transform="rotate(216)"/>
-              <path d="M0 0C-8-7-8-22 0-26C8-22 8-7 0 0Z" transform="rotate(288)"/>
-              <circle r="4.5" fill="#fff1d6" fill-opacity=".85"/>
-            </g>
-            <g id="fl-branch">
-              <path d="M2 2Q70 20 118 96M2 2Q20 70 36 128" fill="none" stroke="#a8d8c8" stroke-width="1.4" stroke-linecap="round" stroke-opacity=".45"/>
-              <use href="#fl-leaf" transform="translate(35 15) rotate(-23)" color="#a8d8c8"/>
-              <use href="#fl-leaf" transform="translate(35 15) rotate(77)" color="#a8d8c8"/>
-              <use href="#fl-leaf" transform="translate(65 34) rotate(94)" color="#a8d8c8"/>
-              <use href="#fl-leaf" transform="translate(93 62) rotate(-1)" color="#a8d8c8"/>
-              <use href="#fl-leaf" transform="translate(19 67) rotate(129) scale(.8)" color="#a8d8c8"/>
-              <use href="#fl-leaf" transform="translate(29 104) rotate(25) scale(.7)" color="#a8d8c8"/>
-              <use href="#fl-flower" transform="translate(118 96) scale(.85)" color="#ffb8cc"/>
-              <use href="#fl-flower" transform="translate(36 128) scale(.5)" color="#d4c1f5"/>
-            </g>
-          </defs>
-        </svg>
-        <i class="card-frame"></i>
-        <span class="fl-corner c1"><svg class="fl-svg" viewBox="0 0 150 150"><use href="#fl-branch"/></svg></span>
-        <span class="fl-corner c4"><svg class="fl-svg" viewBox="0 0 150 150"><use href="#fl-branch"/></svg></span>
+  <div class="hero-stage demo-host">
+    <div class="demo glass glow-border" id="demoCard">
+      <span class="demo-tag" data-i18n="home.demoTry"></span>
+      <div class="demo-stage" id="dEnv">
+        <div class="love" id="demoLove"><svg class="bloom" id="demoBloom" viewBox="-20 -20 440 400" aria-hidden="true"></svg></div>
+        <p class="love-hint" data-i18n="recv.hint"></p>
       </div>
-      <span class="eyebrow card-chip"><svg class="chip-fl" viewBox="-30 -30 60 60" aria-hidden="true"><use href="#fl-flower" color="#ffb8cc"/></svg> <span data-i18n="home.demoFrom"></span></span>
-      <h3 class="q" data-i18n="home.demoQ"></h3>
-      <div class="btns">
-        <button class="btn btn-lg" id="dYes" type="button">YES</button>
-        <button class="btn btn-ghost btn-lg" id="dNo" type="button" data-i18n="ask.no"></button>
+      <div class="demo-stage" id="dQ" hidden>
+        <p class="runaway" id="dRun" hidden data-i18n="ask.runaway"></p>
+        <div class="lottie q-hearts" data-lottie="hearts" data-loop="1"></div>
+        <div class="q-wrap"><h3 class="q" data-i18n="home.demoQ"></h3><p class="q-tease" data-i18n="home.demoTease"></p></div>
+        <div class="btns">
+          <button class="btn btn-lg" id="dYes" type="button">YES</button>
+          <button class="btn btn-ghost btn-lg" id="dNo" type="button" data-i18n="ask.no"></button>
+        </div>
       </div>
-    </div>
-    <div class="demo-stage" id="dDone" hidden>
-      <div class="stamp" data-i18n="home.stamp"></div>
-      <p data-i18n="home.demoDone"></p>
-      <div class="row-gap">
-        <a class="btn btn-ghost btn-sm" href="#/n/demo" data-i18n="home.fullSample"></a>
-        <button class="link" id="dReplay" type="button" data-i18n="home.replay"></button>
+      <div class="demo-stage" id="dDone" hidden>
+        <div class="lottie done-hands" data-lottie="holdHands" data-loop="1"></div>
+        <div class="stamp" data-i18n="home.stamp"></div>
+        <p class="done-line" data-i18n="home.demoDone2"></p>
+        <div class="row-gap">
+          <a class="btn btn-ghost btn-sm" href="#/n/demo" data-i18n="home.fullSample"></a>
+          <button class="link" id="dReplay" type="button" data-i18n="home.replay"></button>
+        </div>
       </div>
+      <div class="demo-confetti" id="dConfetti" aria-hidden="true"></div>
     </div>
   </div>
 </section>
 
-<section class="section wrap" id="how">
-  <div class="sec-head" data-reveal>
-    <span class="eyebrow" data-i18n="nav.how"></span>
-    <h2><span data-i18n="home.howH2a"></span><span class="grad-text" data-i18n="home.howH2b"></span><span data-i18n="home.howH2c"></span></h2>
-    <p data-i18n="home.howP"></p>
+<section class="journey wrap" id="how">
+  <span class="eyebrow" data-i18n="home.jEyebrow"></span>
+  <div class="jmap-wrap" data-reveal>
+    <span class="jline" aria-hidden="true"><i class="jline-fill"></i></span>
+    <span class="jflyer" aria-hidden="true">💌</span>
+    <ol class="jmap">
+      <li><span class="jdot" aria-hidden="true">💌</span><b data-i18n="home.j1"></b></li>
+      <li><span class="jdot" aria-hidden="true">🗓️</span><b data-i18n="home.j2"></b></li>
+      <li><span class="jdot" aria-hidden="true">🧋</span><b data-i18n="home.j3"></b></li>
+      <li class="end"><span class="jdot" aria-hidden="true">🎟️<i class="jpin">📍</i></span><b data-i18n="home.j4"></b></li>
+    </ol>
   </div>
-  <div class="seg" role="group" data-i18n-attr="aria-label:home.role" data-reveal>
-    <span class="seg-ind" aria-hidden="true"></span>
-    <button class="seg-tab" type="button" aria-pressed="true" aria-controls="stepsSender" data-tab="sender" data-i18n="home.roleSender"></button>
-    <button class="seg-tab" type="button" aria-pressed="false" aria-controls="stepsReceiver" data-tab="receiver" data-i18n="home.roleReceiver"></button>
-  </div>
-  <div class="steps four" id="stepsSender" data-reveal-stagger></div>
-  <div class="steps three" id="stepsReceiver" hidden></div>
 </section>
 
 <section class="section wrap ticket-sec">
   <div class="ticket-copy" data-reveal>
     <span class="eyebrow" data-i18n="final"></span>
     <h2><span data-i18n="home.tkH2a"></span><span class="grad-text" data-i18n="home.tkH2b"></span></h2>
-    <ul class="ticks">
-      <li><span class="badge" aria-hidden="true">📸</span><div><b data-i18n="home.tick1"></b><span data-i18n="home.tick1d"></span></div></li>
-      <li><span class="badge" aria-hidden="true">📅</span><div><b data-i18n="addCal"></b><span data-i18n="home.tick2d"></span></div></li>
-      <li><span class="badge" aria-hidden="true">💌</span><div><b data-i18n="home.tick3"></b><span data-i18n="home.tick3d"></span></div></li>
-    </ul>
+    <p class="tk-line" data-i18n="home.tkLine"></p>
   </div>
-  <div class="ticket-host" id="homeTicket" data-reveal></div>
+  <div class="ticket-host printer" id="homeTicket">
+    <span class="tk-slot" aria-hidden="true"></span>
+    <div class="tk-feed"></div>
+  </div>
 </section>
 
 <section class="section wrap">

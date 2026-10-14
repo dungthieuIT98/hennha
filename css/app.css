@@ -233,6 +233,44 @@ body.in-frame #app { padding-top: 20px; }
 .stamp { font: 800 2.6rem/1 var(--display); color: var(--gold); border: 3px solid var(--gold); border-radius: 18px; padding: 8px 22px; margin-bottom: 16px; box-shadow: 0 0 30px rgba(255, 209, 102, .35), inset 0 0 20px rgba(255, 209, 102, .2); }
 .demo-stage p { color: var(--muted); max-width: 340px; margin-bottom: 16px; }
 
+/* hero card: one playable invite (envelope, question, done) */
+.demo-host { display: grid; place-items: center; }
+.demo-host .demo { aspect-ratio: auto; max-width: 420px; height: 440px; }
+.demo-host .love { --w: 210px; }
+.demo-tag { position: absolute; top: 16px; left: 20px; z-index: 2; font: 700 .7rem/1 var(--mono); letter-spacing: .22em; text-transform: uppercase; color: var(--gold); }
+.q-hearts { inset: 0; opacity: .5; }
+.demo .q-wrap { position: relative; margin-bottom: 22px; }
+.demo .q-wrap .q { margin-bottom: 10px; }
+.demo .q-wrap p { margin: 0 auto; font-size: .92rem; }
+.done-hands { position: relative; width: 190px; height: 130px; margin: -8px auto -6px; }
+.done-line { font-size: .95rem; }
+.demo-confetti { position: absolute; inset: 0; z-index: 3; overflow: hidden; pointer-events: none; }
+.demo-confetti i { position: absolute; left: 0; top: 0; width: 8px; height: 12px; border-radius: 2px; background: var(--pink); }
+.demo-confetti i:nth-child(4n+2) { background: var(--violet); }
+.demo-confetti i:nth-child(4n+3) { background: var(--cyan); }
+.demo-confetti i:nth-child(4n) { background: var(--gold); }
+
+/* journey map: four stops, the letter flies along the line */
+.journey { position: relative; padding: 90px 0 10px; text-align: center; }
+.jmap-wrap { position: relative; max-width: 860px; margin: 8px auto 0; padding-top: 6px; }
+.jline { position: absolute; left: 12.5%; right: 12.5%; top: 36px; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .12); }
+.jline-fill { position: absolute; inset: 0; border-radius: inherit; background: var(--grad); transform-origin: left center; box-shadow: 0 0 14px rgba(255, 79, 139, .6); }
+.jflyer { position: absolute; left: 12.5%; top: 38px; z-index: 2; display: grid; place-items: center; width: 36px; height: 36px; margin: -18px 0 0 -18px; font-size: 26px; opacity: 0; pointer-events: none; }
+.jmap { position: relative; z-index: 1; list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); }
+.jmap li { display: grid; justify-items: center; align-content: start; gap: 12px; }
+.jmap b { font: 800 1.05rem/1.2 var(--display); overflow-wrap: anywhere; }
+.jdot { position: relative; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; font-size: 28px; line-height: 1;
+  background: rgba(30, 22, 58, .92); border: 1px solid var(--stroke-2); box-shadow: 0 0 28px rgba(168, 85, 247, .35); }
+.jmap .end .jdot { border-color: rgba(255, 209, 102, .5); box-shadow: 0 0 28px rgba(255, 209, 102, .3); }
+.jpin { position: absolute; right: -8px; top: -14px; font-style: normal; font-size: 20px; }
+
+/* ticket printer: the ticket slides out of a slot */
+.printer { position: relative; width: 100%; max-width: 400px; margin: 0 auto; padding-top: 10px; }
+.tk-slot { position: absolute; left: -4%; right: -4%; top: 4px; z-index: 3; height: 14px; border-radius: 999px; border: 1px solid var(--stroke-2);
+  background: linear-gradient(180deg, #0b0818, #1d1440); box-shadow: 0 6px 24px -6px rgba(168, 85, 247, .6), inset 0 -2px 0 rgba(255, 255, 255, .08); }
+.tk-feed { clip-path: inset(0 -60px -90px -60px); }
+.tk-line { color: var(--muted); max-width: 46ch; }
+
 .seg { position: relative; display: inline-grid; grid-auto-flow: column; gap: 4px; padding: 5px; border-radius: 999px; background: rgba(255, 255, 255, .05); border: 1px solid var(--stroke); }
 #how .seg { display: grid; width: max-content; margin: 0 auto 30px; }
 .seg-ind { position: absolute; left: 0; top: 5px; bottom: 5px; width: 0; border-radius: 999px; background: var(--grad-btn); box-shadow: 0 8px 24px -8px rgba(255, 79, 139, .8); }
@@ -635,8 +673,14 @@ dialog.closing::backdrop { opacity: 0; }
   .stage-card .love { --w: 180px; }
   .float-badge span { font-size: .8rem; padding: 8px 12px; }
   .steps.four, .steps.three { grid-template-columns: 1fr; }
-  .section { padding-top: 70px; }
+  .section, .journey { padding-top: 70px; }
   .demo { min-height: 300px; }
+  .demo-host .demo { height: 420px; }
+  .demo-host .love { --w: 190px; }
+  .jdot { width: 48px; height: 48px; font-size: 22px; }
+  .jline { top: 28px; }
+  .jflyer { top: 30px; }
+  .jmap b { font-size: .82rem; }
   .fl-corner { width: 84px; height: 84px; }
   .panel { padding: 26px 18px 20px; }
   .st-label { display: none; }
