@@ -246,6 +246,11 @@
     if (!Array.isArray(o.p) || o.p.length > HN.PLANS.length) return null;
     const plans = HN.PLANS.filter((p) => o.p.includes(p.id)).map((p) => p.id);
     if (!plans.length) return null;
+    // "pick": the sender leaves the date and time to the receiver, so none is stored
+    if (o.tm === 0) {
+      if (o.d !== "" || o.h !== -1 || o.i !== -1) return null;
+      return { code: o.c, from, to, message, plans, timeMode: "pick", date: "", hour: null, minute: null };
+    }
     if (o.tm !== 1 || !HN.validDate(o.d) || !Number.isInteger(o.h) || o.h < 0 || o.h > 23 || (o.i !== 0 && o.i !== 30) || HN.isPast(o.d, o.h, o.i)) return null;
     return { code: o.c, from, to, message, plans, timeMode: "fixed", date: o.d, hour: o.h, minute: o.i };
   };

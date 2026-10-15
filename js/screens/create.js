@@ -15,7 +15,9 @@
   };
   const draftInvite = (code) => {
     const cur = HN.draft.get();
-    return { code, from: cur.from, to: cur.to, message: cur.message, timeMode: "fixed", date: cur.date, hour: cur.hour, minute: cur.minute, plans: cur.plans || [] };
+    const base = { code, from: cur.from, to: cur.to, message: cur.message, plans: cur.plans || [] };
+    if (cur.timeMode === "pick") return Object.assign(base, { timeMode: "pick", date: "", hour: null, minute: null });
+    return Object.assign(base, { timeMode: "fixed", date: cur.date, hour: cur.hour, minute: cur.minute });
   };
 
   HN.SCREENS.create = () => {
@@ -50,12 +52,22 @@
       gsap.to(".st-fill", { scaleX: Math.min(step - 1, 5) / 5, duration: 0.6, ease: "power3.inOut" });
     }
 
+    // the side ticket follows the draft while it is being written (steps 1 to 4)
+    const grid = $(".create-grid", app);
+    function livePreview() {
+      const cur = HN.draft.get();
+      const when = cur.timeMode === "pick" ? "" : HN.fmtWhen(cur.date, cur.hour, cur.minute) || HN.t("tk.notPicked");
+      $("#lpStage").replaceChildren(HN.ticket({ from: cur.from || "…", to: cur.to || "…", when, plans: cur.plans || [], dodges: 0, code: "" }));
+    }
+
     function goStep(n, animate = true) {
       if (busy) return;
       const prev = steps.find((s) => s.classList.contains("active"));
       const next = steps.find((s) => Number(s.dataset.step) === n);
       step = n;
       HN.draft.set({ step: n });
+      grid.classList.toggle("no-prev", n > 4);
+      if (n <= 4) livePreview();
       updateStepper();
       const enter = () => {
         steps.forEach((s) => s.classList.toggle("active", s === next));
@@ -90,6 +102,7 @@
         showTo(pt, toTouched);
         $("#next1").disabled = !!pf || !!pt;
         HN.draft.set({ from: pf ? "" : HN.clean(from.value), to: pt ? "" : HN.clean(to.value) });
+        livePreview();
       }
       from.addEventListener("input", () => { touched = true; refresh(); });
       from.addEventListener("blur", () => { touched = true; refresh(); });
@@ -148,12 +161,14 @@
 
     /* --- G3 time --- */
     (() => {
-      const st = { date: d.date || null, hour: d.hour ?? null, minute: d.minute ?? null };
-      if (st.date && (!HN.validDate(st.date) || HN.isPast(st.date, 23, 59))) Object.assign(st, { date: null, hour: null, minute: null });
+      const st = { mode: d.timeMode === "pick" ? "pick" : "fixed", date: d.date || null, hour: d.hour ?? null, minute: d.minute ?? null };
+      let stale = false; // a time that has gone by: the saved one, or the one picked before the date changed
+      if (st.date && (!HN.validDate(st.date) || HN.isPast(st.date, 23, 59))) { stale = !!HN.validDate(st.date); Object.assign(st, { date: null, hour: null, minute: null }); }
       HN.calendar($("#cal"), {
         selected: HN.parseISO(st.date),
         onSelect(date) {
           st.date = HN.iso(date);
+          stale = HN.isPast(st.date, 23, 30) || (st.hour != null && HN.isPast(st.date, st.hour, st.minute ?? 0));
           if (HN.isPast(st.date, st.hour, st.minute ?? 0)) { st.hour = null; st.minute = null; }
           tp.set(st.hour, st.minute);
           update();
@@ -169,12 +184,28 @@
           update();
         },
       });
+      $$("[data-mode]", app).forEach((b) => b.addEventListener("click", () => {
+        if (st.mode === b.dataset.mode) return;
+        st.mode = b.dataset.mode;
+        update();
+      }));
       function update() {
+        const pick = st.mode === "pick";
         const ok = st.date && st.hour != null && st.minute != null && !HN.isPast(st.date, st.hour, st.minute);
+        if (ok) stale = false;
+        $$("[data-mode]", app).forEach((b) => {
+          const on = b.dataset.mode === st.mode;
+          b.classList.toggle("selected", on);
+          b.setAttribute("aria-pressed", String(on));
+        });
+        $("#fixedPane").hidden = pick;
+        $("#pickNote").hidden = !pick;
         $("#when").textContent = ok ? "✓ " + HN.fmtWhen(st.date, st.hour, st.minute) : HN.t(st.date ? "c3.pickTime" : "c3.pickDay");
         $("#when").classList.toggle("ok", !!ok);
-        $("#next3").disabled = !ok;
-        HN.draft.set({ timeMode: "fixed", date: st.date, hour: st.hour, minute: st.minute });
+        $("#hPast").textContent = stale ? HN.t("c3.past") : "";
+        $("#next3").disabled = !pick && !ok;
+        HN.draft.set({ timeMode: st.mode, date: st.date, hour: st.hour, minute: st.minute });
+        livePreview();
         tp.render();
       }
       update();
@@ -216,6 +247,7 @@
         $("#counter").textContent = plans.length ? HN.t("c4.count", { n: plans.length }) : HN.t("c4.none");
         $("#next4").disabled = plans.length === 0;
         HN.draft.set({ plans });
+        livePreview();
       }
       $$("[data-ptab]", app).forEach((t) => t.addEventListener("click", () => {
         if (tab === t.dataset.ptab) return;

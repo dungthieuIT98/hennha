@@ -4,7 +4,7 @@
 window.HN.I18N = {
   vi: {
     "locale": "vi-VN",
-    "meta.title": "Hẹn Nha · Thiệp mời hẹn hò",
+    "meta.title": "Di date hong · Thiệp mời hẹn hò",
     "lang.label": "Ngôn ngữ / Language",
 
     "nav.label": "Điều hướng chính",
@@ -17,7 +17,7 @@ window.HN.I18N = {
     "foot.terms": "Điều khoản",
     "foot.contact": "Liên hệ",
     "foot.policy": "Chính sách quyền riêng tư",
-    "foot.note": "© 2026 Hẹn Nha · bản demo, chưa phải bản chính thức",
+    "foot.note": "© 2026 Di date hong · bản demo, chưa phải bản chính thức",
 
     "you": "cậu",
     "you.self": "Bạn",
@@ -123,6 +123,14 @@ window.HN.I18N = {
     "c3.min": "Phút",
     "c3.pickTime": "Chọn giờ và phút",
     "c3.pickDay": "Chọn một ngày trên lịch",
+    "c3.modeLabel": "Cách chốt thời gian",
+    "c3.modeFixed": "Cố định",
+    "c3.modeFixedSub": "Bạn chọn sẵn ngày giờ, người ấy chỉ cần bấm YES",
+    "c3.modePick": "Để người ấy chọn",
+    "c3.modePickSub": "Người ấy tự chọn ngày giờ hợp với họ",
+    "c3.pickNote": "Bạn không cần chọn ngày giờ. Người ấy sẽ chọn khi nhận thiệp.",
+    "c3.past": "Giờ đã chọn đã qua rồi, bạn chọn lại giờ khác nhé.",
+    "lp.label": "Xem trước",
     "c4.eyebrow": "Cảnh 4 · Kịch bản",
     "c4.h2": "Hẹn nhau đi đâu?",
     "c4.sub": "Chọn các kèo bạn muốn rủ, chúng sẽ hiện trên vé hai người",
@@ -194,10 +202,10 @@ window.HN.I18N = {
     "gone.sub": "Link có thể đã hết hạn, đã bị xóa hoặc bị sai.",
 
     "login.eyebrow": "Tài khoản",
-    "login.h1": "Đăng nhập Hẹn Nha",
+    "login.h1": "Đăng nhập Di date hong",
     "login.sub": "Dùng tài khoản Google, không cần nhớ thêm mật khẩu.",
     "login.google": "Tiếp tục với Google",
-    "login.consent": "Hẹn Nha chỉ lưu tên và email Google của bạn để tạo tài khoản.",
+    "login.consent": "Di date hong chỉ lưu tên và email Google của bạn để tạo tài khoản.",
     "login.in.h1": "Bạn đã đăng nhập",
     "login.in.as": "Đang dùng tài khoản {email}",
     "login.logout": "Đăng xuất",
@@ -300,7 +308,7 @@ window.HN.I18N = {
 
   en: {
     "locale": "en-US",
-    "meta.title": "Hẹn Nha · Date invites",
+    "meta.title": "Di date hong · Date invites",
     "lang.label": "Ngôn ngữ / Language",
 
     "nav.label": "Main navigation",
@@ -313,7 +321,7 @@ window.HN.I18N = {
     "foot.terms": "Terms",
     "foot.contact": "Contact",
     "foot.policy": "Privacy Policy",
-    "foot.note": "© 2026 Hẹn Nha · demo, not the official release",
+    "foot.note": "© 2026 Di date hong · demo, not the official release",
 
     "you": "you",
     "you.self": "You",
@@ -419,6 +427,14 @@ window.HN.I18N = {
     "c3.min": "Minute",
     "c3.pickTime": "Pick an hour and minute",
     "c3.pickDay": "Pick a day on the calendar",
+    "c3.modeLabel": "How to set the time",
+    "c3.modeFixed": "Fixed",
+    "c3.modeFixedSub": "You set the date and time, they just say YES",
+    "c3.modePick": "Let them pick",
+    "c3.modePickSub": "They choose a date and time that suits them",
+    "c3.pickNote": "No need to pick a date or time. They'll choose when they open the card.",
+    "c3.past": "That time has already passed, please pick another.",
+    "lp.label": "Live preview",
     "c4.eyebrow": "Scene 4 · The plot",
     "c4.h2": "Where are you going?",
     "c4.sub": "Pick the plans you have in mind, they'll show up on the ticket for two",
@@ -490,10 +506,10 @@ window.HN.I18N = {
     "gone.sub": "The link may have expired, been deleted, or be wrong.",
 
     "login.eyebrow": "Account",
-    "login.h1": "Sign in to Hẹn Nha",
+    "login.h1": "Sign in to Di date hong",
     "login.sub": "Use your Google account, no extra password to remember.",
     "login.google": "Continue with Google",
-    "login.consent": "Hẹn Nha only stores your Google name and email to create your account.",
+    "login.consent": "Di date hong only stores your Google name and email to create your account.",
     "login.in.h1": "You're signed in",
     "login.in.as": "Signed in as {email}",
     "login.logout": "Sign out",

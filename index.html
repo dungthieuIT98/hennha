@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#07060f">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<title>Hẹn Nha · Thiệp mời hẹn hò</title>
+<title>Di date hong · Thiệp mời hẹn hò</title>
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="css/app.css">
 </head>
@@ -20,11 +20,11 @@
 <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
 
 <header class="topbar" id="topbar">
-  <a class="brand" href="#/"><span class="brand-orb" aria-hidden="true"></span><span>Hẹn Nha</span></a>
+  <a class="brand" href="#/"><span class="brand-orb" aria-hidden="true"></span><span>Di date hong</span></a>
   <nav class="top-nav" data-i18n-attr="aria-label:nav.label">
     <button class="link hide-sm" type="button" data-scroll="how" data-i18n="nav.how"></button>
     <a class="pill-link" href="#/q"><span data-i18n="nav.mine"></span> <b id="myCount">0</b></a>
-    <a class="link hide-sm" href="#/login" data-i18n="nav.login"></a>
+    <!-- <a class="link hide-sm" href="#/login" data-i18n="nav.login"></a> -->
     <a class="btn btn-sm hide-sm" href="#/create" data-new data-i18n="nav.create"></a>
     <div class="lang-sw" role="group" data-i18n-attr="aria-label:lang.label">
       <button type="button" data-lang="vi" lang="vi" aria-label="Tiếng Việt" aria-pressed="false">VI</button>
@@ -117,7 +117,7 @@
 </section>
 
 <footer class="footer wrap">
-  <nav><a href="#/" data-soon="foot.privacy" data-i18n="foot.privacy"></a><a href="#/" data-soon="foot.terms" data-i18n="foot.terms"></a><a href="#/" data-soon="foot.contact" data-i18n="foot.contact"></a><a href="#/login" data-i18n="nav.login"></a></nav>
+  <nav><a href="#/" data-soon="foot.privacy" data-i18n="foot.privacy"></a><a href="#/" data-soon="foot.terms" data-i18n="foot.terms"></a><a href="#/" data-soon="foot.contact" data-i18n="foot.contact"></a><!-- <a href="#/login" data-i18n="nav.login"></a> --></nav>
   <p data-i18n="foot.note"></p>
 </footer>
 </template>
@@ -130,8 +130,7 @@
     <div class="panel glass glow-border">
 
       <div class="cstep" data-step="1">
-        <span class="eyebrow" data-i18n="c1.eyebrow"></span>
-        <h2 data-i18n="c1.h2"></h2>
+        <h2 class="sr-only" data-i18n="c1.h2"></h2>
         <p class="sub" data-i18n="c1.sub"></p>
         <div class="field" id="fFrom">
           <label for="nameFrom" data-i18n="c1.from"></label>
@@ -143,11 +142,10 @@
           <div class="input-wrap"><input id="nameTo" type="text" maxlength="20" autocomplete="off" data-i18n-attr="placeholder:c1.toPh" aria-required="true" aria-describedby="hTo cTo"><span class="count" id="cTo">0/20</span></div>
           <p class="hint error" id="hTo" aria-live="polite" hidden></p>
         </div>
-        <div class="nav"><a class="btn btn-ghost" href="#/" data-i18n="c1.home"></a><button class="btn" id="next1" type="button" disabled data-i18n="next"></button></div>
+        <div class="nav"><button class="btn" id="next1" type="button" disabled data-i18n="next"></button></div>
       </div>
 
       <div class="cstep" data-step="2">
-        <span class="eyebrow" data-i18n="c2.eyebrow"></span>
         <h2 data-i18n="c2.h2"></h2>
         <p class="sub" data-i18n="c2.sub"></p>
         <div class="section-label" data-i18n="c2.templates"></div>
@@ -161,9 +159,12 @@
       </div>
 
       <div class="cstep" data-step="3">
-        <span class="eyebrow" data-i18n="c3.eyebrow"></span>
-        <h2 data-i18n="c3.h2"></h2>
-        <p class="sub" data-i18n="c3.sub"></p>
+        <h2 class="c3-h2" data-i18n="c3.h2"></h2>
+        <div class="choices time-mode" role="group" data-i18n-attr="aria-label:c3.modeLabel">
+          <button class="choice" type="button" data-mode="fixed" aria-pressed="true"><span class="dot"></span><span class="c-body"><span class="c-title" data-i18n="c3.modeFixed"></span><span class="c-sub" data-i18n="c3.modeFixedSub"></span></span></button>
+          <button class="choice" type="button" data-mode="pick" aria-pressed="false"><span class="dot"></span><span class="c-body"><span class="c-title" data-i18n="c3.modePick"></span><span class="c-sub" data-i18n="c3.modePickSub"></span></span></button>
+        </div>
+        <p class="pick-note" id="pickNote" hidden data-i18n="c3.pickNote"></p>
         <div id="fixedPane">
           <div class="section-label" data-i18n="c3.date"></div>
           <div id="cal"></div>
@@ -172,12 +173,12 @@
             <div><div class="section-label" data-i18n="c3.min"></div><div id="mins"></div></div>
           </div>
           <p class="when-line" id="when"></p>
+          <p class="hint past-hint" id="hPast" aria-live="polite"></p>
         </div>
         <div class="nav"><button class="btn btn-ghost" type="button" data-back data-i18n="back"></button><button class="btn" id="next3" type="button" disabled data-i18n="next"></button></div>
       </div>
 
       <div class="cstep" data-step="4">
-        <span class="eyebrow" data-i18n="c4.eyebrow"></span>
         <h2 data-i18n="c4.h2"></h2>
         <p class="sub" data-i18n="c4.sub"></p>
         <div class="seg seg-plans" role="group" data-i18n-attr="aria-label:c4.type">
@@ -199,7 +200,6 @@
       </div>
 
       <div class="cstep" data-step="6">
-        <span class="eyebrow" data-i18n="c6.eyebrow"></span>
         <h2 data-i18n="c6.h2"></h2>
         <p class="sub" data-i18n="c6.sub"></p>
         <div class="choices" id="pricing"></div>
@@ -214,7 +214,6 @@
       <div class="cstep" data-step="7">
         <div class="launch">
           <span class="launch-emoji" aria-hidden="true">🎉</span>
-          <span class="eyebrow" data-i18n="c7.eyebrow"></span>
           <h2 data-i18n="c7.h2"></h2>
           <p class="sub" data-i18n="c7.sub"></p>
         </div>
@@ -233,6 +232,10 @@
       </div>
 
     </div>
+    <aside class="live-prev" id="livePrev" aria-hidden="true">
+      <span class="eyebrow lp-label" data-i18n="lp.label"></span>
+      <div class="lp-stage" id="lpStage"></div>
+    </aside>
   </div>
 </section>
 </template>
@@ -307,6 +310,7 @@
 </template>
 
 <!-- ============================ LOGIN · GOOGLE ============================ -->
+<!-- Google sign-in is off for now. To bring it back: uncomment this template and the nav/footer links, add the login.js script tag after manage.js (the build regex would bundle it even from a comment, so it is removed), and restore the gate and route in js/app.js
 <template id="tpl-login">
 <section class="recv wrap">
   <div class="recv-card glass glow-border login" id="loginCard" aria-busy="true">
@@ -343,6 +347,7 @@
   </div>
 </section>
 </template>
+-->
 
 <!-- ============================ Q · MANAGE ============================ -->
 <template id="tpl-q">
@@ -388,7 +393,6 @@
 <script src="js/screens/create.js"></script>
 <script src="js/screens/receiver.js"></script>
 <script src="js/screens/manage.js"></script>
-<script src="js/screens/login.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

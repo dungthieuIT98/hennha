@@ -7,7 +7,8 @@
 
   function route() {
     const parts = location.hash.replace(/^#\/?/, "").split("/");
-    return { name: ({ create: "create", n: "n", q: "q", login: "login" })[parts[0]] || "home", parts };
+    // login: "login" is off with Google sign-in
+    return { name: ({ create: "create", n: "n", q: "q" })[parts[0]] || "home", parts };
   }
   function mount(r) {
     document.body.dataset.route = r.name;
@@ -19,16 +20,21 @@
     HN.updateCount();
     if (r.name === "home" && pendingScroll) { const id = pendingScroll; pendingScroll = null; setTimeout(() => scrollToId(id), 120); }
   }
-  // creating an invite needs a signed-in user; no answer from the server counts as not signed in
+  // Google sign-in is off for now, so creating an invite is open to everyone.
+  // To bring the gate back (creating needs a signed-in user; no answer from the server counts as not signed in):
+  //   function enter(r, token, then) {
+  //     const go = () => { mount(r); if (then) then(); };
+  //     if (r.name !== "create") { go(); return; }
+  //     HN.fetchMe().catch(() => null).then((user) => {
+  //       if (token !== navToken) return;
+  //       if (user) { go(); return; }
+  //       HN.session.set("hn-after-login", "create");
+  //       location.replace("#/login/need");
+  //     });
+  //   }
   function enter(r, token, then) {
-    const go = () => { mount(r); if (then) then(); };
-    if (r.name !== "create") { go(); return; }
-    HN.fetchMe().catch(() => null).then((user) => {
-      if (token !== navToken) return;
-      if (user) { go(); return; }
-      HN.session.set("hn-after-login", "create");
-      location.replace("#/login/need");
-    });
+    mount(r);
+    if (then) then();
   }
   function render() {
     const r = route();

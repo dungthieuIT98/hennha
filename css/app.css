@@ -1,4 +1,4 @@
-/* Hẹn Nha · web3 night theme. Fonts: Baloo 2 (display) + Nunito (body), self-hosted. */
+/* Di date hong · web3 night theme. Fonts: Baloo 2 (display) + Nunito (body), self-hosted. */
 @property --a { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
 
 :root {
@@ -343,7 +343,12 @@ body.in-frame #app { padding-top: 20px; }
 .st-node.current .st-label, .st-node.done .st-label { color: var(--text); }
 @keyframes ring { from { transform: scale(.9); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
 
-.create-grid { display: grid; grid-template-columns: minmax(0, 680px); justify-content: center; }
+.create-grid { display: grid; grid-template-columns: minmax(0, 680px) minmax(0, 340px); gap: 32px; justify-content: center; }
+.create-grid.no-prev { grid-template-columns: minmax(0, 680px); }
+.live-prev { position: sticky; top: 96px; align-self: start; }
+.create-grid.no-prev .live-prev { display: none; }
+.lp-label { display: block; text-align: center; margin-bottom: 14px; }
+.lp-stage .ticket { max-width: 320px; }
 .panel { padding: 34px 32px 28px; }
 .panel h2 { font-size: clamp(1.8rem, 3.4vw, 2.4rem); }
 .cstep { display: none; }
@@ -421,6 +426,12 @@ textarea.input { padding: 14px 16px 30px; line-height: 1.5; min-height: 100px; }
 .dd-item:disabled { opacity: .3; cursor: not-allowed; }
 .when-line { margin-top: 14px; min-height: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
 .when-line.ok { color: var(--mint); }
+.past-hint { color: var(--gold); }
+.past-hint:empty { margin: 0; }
+.c3-h2 { margin-bottom: 18px; }
+.time-mode { grid-template-columns: 1fr 1fr; margin-bottom: 8px; }
+.time-mode .choice:hover { transform: none; }
+.pick-note { padding: 14px 16px; border-radius: var(--radius); font-size: .94rem; background: rgba(34, 211, 238, .08); border: 1px solid rgba(34, 211, 238, .3); margin: 12px 0; }
 
 .seg-plans { display: grid; grid-template-columns: 1fr 1fr; margin: 4px 0 14px; }
 .seg-plans .seg-tab { color: #fff; }
@@ -660,6 +671,8 @@ dialog.closing::backdrop { opacity: 0; }
   .steps.three { grid-template-columns: repeat(2, 1fr); }
   .ticket-sec { grid-template-columns: 1fr; }
   .cta-band { grid-template-columns: 1fr; text-align: center; justify-items: center; }
+  .create-grid { grid-template-columns: minmax(0, 680px); }
+  .live-prev { display: none; }
 }
 @media (max-width: 600px) {
   .wrap { width: calc(100% - 28px); }
@@ -686,6 +699,7 @@ dialog.closing::backdrop { opacity: 0; }
   .st-label { display: none; }
   .stepper { margin-bottom: 20px; }
   .opt-grid { grid-template-columns: repeat(2, 1fr); }
+  .time-mode { grid-template-columns: 1fr; }
   .recv-card { padding: 30px 18px 20px; }
   .btn-lg { min-height: 52px; padding: 0 24px; }
 }
