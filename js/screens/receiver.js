@@ -1,8 +1,8 @@
 "use strict";
-/* RECEIVER (N1 to N3, N7 when invalid): open the letter, dodge NO, get the ticket. */
+/* RECEIVER (N1 to N5, N7 when invalid): open the letter, dodge NO, confirm or pick the time, pick the plan, get the ticket. */
 (() => {
   const HN = window.HN;
-  const { $, $$, el, pad2 } = HN;
+  const { $, $$, el } = HN;
   const DEMO = () => ({ code: "demo00", from: "Minh", to: "Lan", message: HN.renderTemplate(HN.t("tpl.t1"), "Lan"), timeMode: "fixed", date: HN.iso(HN.nextSaturday()), hour: 19, minute: 30, plans: ["trasua", "cafe", "xemphim", "daoho"] });
 
   HN.SCREENS.n = (r) => {
@@ -20,12 +20,15 @@
       return;
     }
     const greet = inv.to || HN.t("you");
-    const ans = { date: inv.date, hour: inv.hour, minute: inv.minute, plans: inv.plans, name: inv.to, dodges: 0 };
+    // date and time start as the sender's; the receiver may confirm or replace them, and the sender may have left them open
+    const ans = { date: inv.date, hour: inv.hour, minute: inv.minute, plans: [], name: inv.to, dodges: 0 };
     const steps = $$(".rstep", app);
-    let step = 1, busy = false;
+    let step = 1, busy = false, recorded = false;
     const ENTER = {};
 
+    $("#askFrom").textContent = HN.t("recv.letterFrom", { name: inv.from });
     $("#askTitle").textContent = inv.message;
+    $("#endH").textContent = HN.t("recv.done");
     $("#endSub").textContent = PREVIEW ? HN.t("recv.previewEnd") : HN.t("recv.willGet", { name: inv.from });
     HN.mountLotties(steps[0]);
 
@@ -42,7 +45,7 @@
           gsap.set(prev, { clearProps: "all" });
           next.classList.add("active");
           step = n;
-          gsap.to("#rProg", { scaleX: (n - 1) / 2, duration: 0.5, ease: "power3.out" });
+          gsap.to("#rProg", { scaleX: (n - 1) / (steps.length - 1), duration: 0.5, ease: "power3.out" });
           HN.mountLotties(next);
           if (ENTER[n]) ENTER[n]();
           gsap.fromTo(next, { x: 40 * dir, opacity: 0 }, { x: 0, opacity: 1, duration: 0.45, ease: "power3.out", clearProps: "transform,opacity", onComplete: () => { busy = false; } });
@@ -51,41 +54,11 @@
         },
       });
     }
-    $$("[data-rback]", app).forEach((b) => b.addEventListener("click", () => goTo(step - 1)));
 
-    /* N1 letter: the white envelope, then the letter turns into the event dashboard */
+    /* N1 letter: the white envelope; once it is open the card moves on to the question */
     const wenv = HN.loveEnvelope({ to: greet });
     $("#love").insertBefore(wenv, $("#loveHint"));
-    const heart = $(".nheart", wenv), letter = $(".wenv-letter", wenv), flap = $(".wenv-flap", wenv);
-    $("#dCode").textContent = "#" + inv.code.toUpperCase();
-    $("#dTo").textContent = greet;
-    $("#dFrom").textContent = inv.from;
-    $("#dMsg").textContent = inv.message;
-    const day = HN.parseISO(inv.date);
-    const hasTime = inv.hour != null && inv.minute != null;
-    $("#dWhen").textContent = day ? HN.fmtDate(day, "short") + (hasTime ? " · " + pad2(inv.hour) + ":" + pad2(inv.minute) : "") : HN.t("recv.unset");
-    const target = day && hasTime ? new Date(day.getFullYear(), day.getMonth(), day.getDate(), inv.hour, inv.minute) : null;
-    function tick() {
-      const left = $("#dLeft");
-      if (!target) { left.textContent = "—"; return; }
-      const ms = target - Date.now();
-      if (ms <= 0) { left.textContent = HN.t("recv.now"); return; }
-      const s = Math.floor(ms / 1000);
-      left.textContent = Math.floor(s / 86400) + "d " + pad2(Math.floor(s / 3600) % 24) + ":" + pad2(Math.floor(s / 60) % 60) + ":" + pad2(s % 60);
-    }
-    const plans = HN.planList(inv.plans);
-    $("#dCount").textContent = HN.t("recv.plans", { n: plans.length });
-    plans.forEach((p, i) => {
-      const li = el("li");
-      const txt = el("div");
-      txt.append(el("b", null, HN.planName(p)), el("small", null, HN.t("group." + p.group)));
-      const ico = el("span", "ico", p.ico);
-      ico.setAttribute("aria-hidden", "true");
-      li.append(ico, txt, el("span", "n", "#" + pad2(i + 1)));
-      $("#dPlans").append(li);
-    });
-    if (!plans.length) { $(".dash-label", app).hidden = true; $("#dPlans").hidden = true; }
-
+    const heart = $(".nheart", wenv), flap = $(".wenv-flap", wenv);
     const bloom = HN.bloom($("#bloom"));
     gsap.set(wenv, { transformPerspective: 900 });
     const BLOOM_SECONDS = 1;
@@ -104,8 +77,7 @@
     ];
     HN.tilt(wenv, 14);
 
-    let opened = false, ticker = 0;
-    HN.onLeave(() => clearInterval(ticker));
+    let opened = false;
     function open() {
       if (opened) return;
       opened = true;
@@ -117,29 +89,10 @@
         .to("#loveHint", { opacity: 0, duration: 0.2 }, 0)
         .add(HN.openLove(wenv), 0)
         .to([$(".wenv-back", wenv), $(".wenv-front", wenv), flap, "#bloom"], { opacity: 0, y: 30, duration: 0.45, ease: "power2.in" }, "+=0.15")
-        .add(morph);
-      HN.onLeave(() => t.kill());
-    }
-    // FLIP: the dashboard starts at the letter's box and grows into place
-    function morph() {
-      const from = letter.getBoundingClientRect();
-      $("#love").hidden = true;
-      $("#loveEyebrow").textContent = HN.t("recv.letterFrom", { name: inv.from });
-      const dash = $("#dash");
-      dash.hidden = false;
-      const to = dash.getBoundingClientRect();
-      tick();
-      ticker = setInterval(tick, 1000);
-      const t = gsap.timeline({ onComplete: () => $("#dashGo").focus({ preventScroll: true }) })
-        .fromTo(dash, { x: from.left - to.left, y: from.top - to.top, scaleX: from.width / to.width, scaleY: from.height / to.height, transformOrigin: "0 0" },
-          { x: 0, y: 0, scaleX: 1, scaleY: 1, duration: 0.75, ease: "power3.inOut", clearProps: "transform" })
-        .to(".dash-skin", { opacity: 0, duration: 0.45 }, "-=0.35")
-        .from($$(".dash > :not(.dash-skin)", app), { y: 14, opacity: 0, stagger: 0.06, duration: 0.4, ease: "power3.out", clearProps: "transform,opacity" }, "-=0.2")
-        .from($$(".dash-tl li", app), { x: -16, opacity: 0, stagger: 0.06, duration: 0.35, ease: "power3.out", clearProps: "transform,opacity" }, "-=0.3");
+        .add(() => goTo(2));
       HN.onLeave(() => t.kill());
     }
     heart.addEventListener("click", open);
-    $("#dashGo").addEventListener("click", () => goTo(2));
 
     /* N2 the YES / NO joke: NO escapes to <body> so it can run anywhere on screen */
     let askSplit = null;
@@ -151,7 +104,7 @@
       HN.loop(gsap.to(".ask-emoji", { rotation: 10, y: -6, duration: 0.9, yoyo: true, repeat: -1, ease: "sine.inOut", delay: 0.8 }));
     };
     const yesBtn = $("#yesBtn"), noBtn = $("#noBtn");
-    let gone = false, last = 0, autoYes = null, recorded = false;
+    let gone = false, last = 0, autoYes = null;
     function toBody() {
       if (noBtn.parentElement === document.body) return;
       const hadFocus = document.activeElement === noBtn;
@@ -203,16 +156,155 @@
     yesBtn.addEventListener("click", () => {
       if (autoYes) autoYes.kill();
       HN.burstAt(yesBtn);
+      goTo(3);
+    });
+
+    /* N3 time: confirm the sender's time or pick another; when the sender left it open it goes straight to the picker */
+    const fixedTime = inv.timeMode === "fixed";
+    const pk = { date: null, hour: null, minute: null };
+    function showTime(mode) {
+      $("#timeFixed").hidden = mode !== "confirm";
+      $("#timePick").hidden = mode !== "pick";
+      $("#timeH").textContent = HN.t(mode === "confirm" ? "recv.timeH" : "recv.timePickH", { name: inv.from });
+    }
+    if (fixedTime) $("#timeWhen").textContent = HN.fmtWhen(inv.date, inv.hour, inv.minute);
+    HN.calendar($("#rCal"), {
+      selected: null,
+      onSelect(date) {
+        pk.date = HN.iso(date);
+        if (HN.isPast(pk.date, pk.hour, pk.minute ?? 0)) { pk.hour = null; pk.minute = null; }
+        rtp.set(pk.hour, pk.minute);
+        timeUpdate();
+      },
+    });
+    const rtp = HN.timePicker($("#rHours"), $("#rMins"), {
+      hour: null, minute: null,
+      isHourDisabled: (h) => HN.isPast(pk.date, h, 30),
+      isMinuteDisabled: (h, m) => h != null && HN.isPast(pk.date, h, m),
+      onChange(h, m) {
+        pk.hour = h; pk.minute = m;
+        if (h != null && m != null && HN.isPast(pk.date, h, m)) { pk.minute = null; rtp.set(h, null); }
+        timeUpdate();
+      },
+    });
+    function timeUpdate() {
+      const ok = pk.date && pk.hour != null && pk.minute != null && !HN.isPast(pk.date, pk.hour, pk.minute);
+      $("#rWhen").textContent = ok ? "✓ " + HN.fmtWhen(pk.date, pk.hour, pk.minute) : HN.t(pk.date ? "c3.pickTime" : "c3.pickDay");
+      $("#rWhen").classList.toggle("ok", !!ok);
+      $("#timeNext").disabled = !ok;
+      rtp.render();
+    }
+    timeUpdate();
+    ENTER[3] = () => showTime(fixedTime ? "confirm" : "pick");
+    $("#timeOk").addEventListener("click", () => goTo(4));
+    $("#timeOther").addEventListener("click", () => {
+      showTime("pick");
+      HN.focusHeading($("#timePick").parentElement);
+    });
+    $("#timeNext").addEventListener("click", () => {
+      Object.assign(ans, { date: pk.date, hour: pk.hour, minute: pk.minute });
+      goTo(4);
+    });
+
+    /* N4 plan: the one plan the sender offered, a pick among several, or any plan; plus the name to sign with */
+    const offered = HN.planList(inv.plans);
+    const offeredView = offered.length === 1 ? "one" : "many";
+    let pview = offeredView, picked = offered.length === 1 ? offered[0].id : null, rtab = "an", signTouched = false;
+    const sign = $("#signName");
+    sign.value = inv.to || "";
+    const signError = () => HN.checkText(sign.value, { max: 20, emptyMsg: HN.t("recv.errSign") });
+    const PVIEW_KEY = { one: "recv.planOne", many: "recv.planMany", all: "recv.planAll" };
+
+    function planOptions(host, list, focusId) {
+      host.replaceChildren();
+      list.forEach((p) => {
+        const on = p.id === picked;
+        const b = el("button", "option" + (on ? " selected" : ""));
+        b.type = "button";
+        b.dataset.id = p.id;
+        b.setAttribute("aria-pressed", String(on));
+        const badge = el("span", "badge", p.ico);
+        badge.setAttribute("aria-hidden", "true");
+        b.append(badge, document.createTextNode(HN.planName(p)));
+        b.addEventListener("click", () => {
+          picked = p.id;
+          renderPlans(p.id);
+          planState();
+          gsap.fromTo($(".badge", $$(".option", host).find((x) => x.dataset.id === p.id)), { scale: 0.5, rotation: -30 }, { scale: 1, rotation: 0, duration: 0.5, ease: "back.out(3)" });
+        });
+        host.append(b);
+        if (p.id === focusId) b.focus({ preventScroll: true });
+      });
+    }
+    function renderPlans(focusId) {
+      $("#planOne").hidden = pview !== "one";
+      $("#planMany").hidden = pview !== "many";
+      $("#planAll").hidden = pview !== "all";
+      $("#planOneActions").hidden = pview !== "one";
+      $("#planDone").hidden = pview === "one";
+      $("#planH").textContent = HN.t(PVIEW_KEY[pview] + "H", { name: inv.from });
+      $("#planSub").textContent = HN.t(PVIEW_KEY[pview] + "Sub", { name: inv.from });
+      if (pview === "one") {
+        const p = offered[0];
+        const badge = el("span", "badge", p.ico);
+        badge.setAttribute("aria-hidden", "true");
+        $("#planOneCard").replaceChildren(badge, el("strong", null, HN.planName(p)), el("small", null, HN.t("group." + p.group)));
+      }
+      if (pview === "many") planOptions($("#rPlanList"), offered, focusId);
+      if (pview === "all") {
+        $$("[data-rtab]", app).forEach((t) => t.setAttribute("aria-pressed", String(t.dataset.rtab === rtab)));
+        planOptions($("#rPlanAll"), HN.PLANS.filter((p) => p.group === rtab), focusId);
+      }
+      $("#planBack").hidden = false;
+      $("#planBack").textContent = HN.t("recv.planBack", { name: inv.from });
+    }
+    function planState() {
+      const err = signError();
+      const show = signTouched && !!err;
+      $("#fSign").classList.toggle("invalid", show);
+      sign.setAttribute("aria-invalid", String(show));
+      $("#hSign").hidden = !show;
+      $("#hSign").textContent = err || "";
+      $("#cSign").textContent = HN.len(sign.value) + "/20";
+      const ready = !err && !!picked;
+      $("#planOk").disabled = !ready;
+      $("#planDone").disabled = !ready;
+    }
+    function setPview(v) {
+      pview = v;
+      picked = v === "one" ? offered[0].id : null;
+      renderPlans();
+      planState();
+      HN.focusHeading($("#planH").parentElement);
+    }
+    ENTER[4] = () => { renderPlans(); planState(); };
+    sign.addEventListener("input", () => { signTouched = true; planState(); });
+    sign.addEventListener("blur", () => { signTouched = true; planState(); });
+    $("#planPropose").addEventListener("click", () => setPview("all"));
+    $("#planOther").addEventListener("click", () => setPview("all"));
+    $("#planBack").addEventListener("click", () => setPview(offeredView));
+    $$("[data-rtab]", app).forEach((t) => t.addEventListener("click", () => {
+      if (rtab === t.dataset.rtab) return;
+      rtab = t.dataset.rtab;
+      renderPlans();
+      gsap.fromTo($$(".option", $("#rPlanAll")), { y: 20, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.03, duration: 0.3, clearProps: "transform,opacity" });
+    }));
+    function finish() {
+      if (signError() || !picked) { signTouched = true; planState(); return; }
+      ans.plans = [picked];
+      ans.name = HN.clean(sign.value);
       if (!PREVIEW && !DEMO_MODE && !HN.IN_FRAME && !recorded) {
         recorded = true;
         HN.responses.add(inv.code, { name: ans.name, date: ans.date, hour: ans.hour, minute: ans.minute, plans: ans.plans, dodges: ans.dodges, at: new Date().toISOString() });
       }
-      goTo(3);
-    });
+      goTo(5);
+    }
+    $("#planOk").addEventListener("click", finish);
+    $("#planDone").addEventListener("click", finish);
 
-    /* N3 ticket */
+    /* N5 ticket */
     const ticketData = () => ({ from: inv.from, to: ans.name || greet, when: HN.fmtWhen(ans.date, ans.hour, ans.minute), plans: ans.plans, dodges: ans.dodges, code: inv.code });
-    ENTER[3] = () => {
+    ENTER[5] = () => {
       const tk = HN.ticket(ticketData());
       $("#rTicket").replaceChildren(tk);
       HN.tilt(tk, 12);

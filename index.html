@@ -22,7 +22,6 @@
 <header class="topbar" id="topbar">
   <a class="brand" href="#/"><span class="brand-orb" aria-hidden="true"></span><span>Di date hong</span></a>
   <nav class="top-nav" data-i18n-attr="aria-label:nav.label">
-    <button class="link hide-sm" type="button" data-scroll="how" data-i18n="nav.how"></button>
     <a class="pill-link" href="#/q"><span data-i18n="nav.mine"></span> <b id="myCount">0</b></a>
     <!-- <a class="link hide-sm" href="#/login" data-i18n="nav.login"></a> -->
     <a class="btn btn-sm hide-sm" href="#/create" data-new data-i18n="nav.create"></a>
@@ -42,6 +41,7 @@
 <template id="tpl-home">
 <section class="hero wrap">
   <div class="hero-copy">
+    <span class="chip-live"><i></i><span data-scramble data-i18n="home.chip"></span></span>
     <h1 class="hero-title"><span class="split" data-i18n="home.h1a"></span> <span class="grad-line" data-i18n="home.h1b"></span></h1>
     <p class="lead" data-reveal data-i18n="home.lead"></p>
     <div class="hero-cta" data-reveal>
@@ -99,9 +99,10 @@
     <h2><span data-i18n="home.tkH2a"></span><span class="grad-text" data-i18n="home.tkH2b"></span></h2>
     <p class="tk-line" data-i18n="home.tkLine"></p>
   </div>
-  <div class="ticket-host printer" id="homeTicket">
-    <span class="tk-slot" aria-hidden="true"></span>
+  <div class="ticket-host pocket" id="homeTicket">
     <div class="tk-feed"></div>
+    <span class="pocket-back" aria-hidden="true"></span>
+    <span class="pocket-front" aria-hidden="true"></span>
   </div>
 </section>
 
@@ -114,6 +115,10 @@
     </div>
     <a class="btn btn-lg magnetic" href="#/create" data-new data-i18n="home.ctaBtn"></a>
   </div>
+</section>
+
+<section class="section wrap fb-sec">
+  <div class="fbx-host glass glow-border" id="homeFb" data-reveal></div>
 </section>
 
 <footer class="footer wrap">
@@ -191,9 +196,8 @@
       </div>
 
       <div class="cstep" data-step="5">
-        <span class="eyebrow" data-i18n="preview"></span>
-        <h2 data-i18n="c5.h2"></h2>
-        <p class="sub" data-i18n="c5.sub"></p>
+        <h2 id="c5h"></h2>
+        <p class="sub" id="c5s"></p>
         <div class="preview-phone"><span class="phone-notch"></span><div class="preview-host" id="previewHost"></div></div>
         <div class="center"><button class="link" id="replay" type="button" data-i18n="c5.replay"></button></div>
         <div class="nav"><button class="btn btn-ghost" id="editBtn" type="button" data-i18n="c5.edit"></button><button class="btn" id="next5" type="button" data-i18n="createLink"></button></div>
@@ -224,10 +228,7 @@
           <p class="hint" id="hShare" aria-live="polite"></p>
         </div>
         <button class="btn btn-block btn-lg" id="shareBtn" type="button" data-i18n="c7.share"></button>
-        <div class="fb glass-inner" id="fb">
-          <p data-i18n="c7.fb"></p>
-          <div class="chip-row" id="fbOpts"></div>
-        </div>
+        <div class="fb glass-inner" id="fb"></div>
         <div class="nav"><a class="btn btn-ghost" href="#/q" data-i18n="c7.manage"></a><button class="btn btn-ghost" id="newBtn" type="button" data-i18n="c7.new"></button></div>
       </div>
 
@@ -253,23 +254,10 @@
         <svg class="bloom" id="bloom" viewBox="-20 -20 440 400" aria-hidden="true"></svg>
         <p class="love-hint" id="loveHint" data-i18n="recv.hint"></p>
       </div>
-      <div class="dash" id="dash" hidden>
-        <span class="dash-skin" aria-hidden="true"></span>
-        <div class="dash-top"><span class="dash-tag"><i></i><span data-i18n="recv.tag"></span></span><span class="dash-code" id="dCode"></span></div>
-        <h2 class="dash-title"><span id="dTo"></span> <i aria-hidden="true">×</i> <span id="dFrom"></span></h2>
-        <p class="dash-msg" id="dMsg"></p>
-        <div class="dash-stats">
-          <div class="stat wide when"><small data-i18n="recv.date"></small><b id="dWhen"></b></div>
-          <div class="stat wide"><small data-i18n="recv.countdown"></small><b id="dLeft"></b></div>
-        </div>
-        <div class="dash-label"><span data-i18n="recv.itinerary"></span><span id="dCount"></span></div>
-        <ol class="dash-tl" id="dPlans"></ol>
-        <button class="btn btn-lg btn-block" id="dashGo" type="button" data-i18n="recv.reply"></button>
-      </div>
     </div>
 
     <div class="rstep" data-step="2">
-      <span class="eyebrow" data-i18n="recv.showing"></span>
+      <span class="eyebrow" id="askFrom"></span>
       <div class="ask-emoji" aria-hidden="true">🥺</div>
       <h1 class="ask-title" id="askTitle"></h1>
       <p class="sub" data-i18n="recv.oneAnswer"></p>
@@ -281,9 +269,57 @@
     </div>
 
     <div class="rstep" data-step="3">
+      <h2 id="timeH"></h2>
+      <div id="timeFixed" hidden>
+        <p class="when-big" id="timeWhen"></p>
+        <div class="r-actions">
+          <button class="btn btn-lg btn-block" id="timeOk" type="button" data-i18n="recv.timeOk"></button>
+          <button class="btn btn-ghost btn-block" id="timeOther" type="button" data-i18n="recv.timeOther"></button>
+        </div>
+      </div>
+      <div id="timePick" hidden>
+        <div class="section-label" data-i18n="c3.date"></div>
+        <div id="rCal"></div>
+        <div class="time-row">
+          <div><div class="section-label" data-i18n="c3.hour"></div><div id="rHours"></div></div>
+          <div><div class="section-label" data-i18n="c3.min"></div><div id="rMins"></div></div>
+        </div>
+        <p class="when-line" id="rWhen"></p>
+        <button class="btn btn-lg btn-block" id="timeNext" type="button" disabled data-i18n="next"></button>
+      </div>
+    </div>
+
+    <div class="rstep" data-step="4">
+      <h2 id="planH"></h2>
+      <p class="sub" id="planSub"></p>
+      <div id="planOne" hidden><div class="plan-big" id="planOneCard"></div></div>
+      <div id="planMany" hidden>
+        <div class="opt-grid" id="rPlanList"></div>
+        <button class="link r-propose" id="planPropose" type="button" data-i18n="recv.planNone"></button>
+      </div>
+      <div id="planAll" hidden>
+        <div class="seg seg-plans" role="group" data-i18n-attr="aria-label:c4.type">
+          <button class="seg-tab" type="button" aria-pressed="true" data-rtab="an"><span data-i18n="group.an"></span></button>
+          <button class="seg-tab" type="button" aria-pressed="false" data-rtab="choi"><span data-i18n="group.choi"></span></button>
+        </div>
+        <div class="opt-grid plan-scroll" id="rPlanAll"></div>
+        <button class="link r-propose" id="planBack" type="button"></button>
+      </div>
+      <div class="field" id="fSign">
+        <label for="signName" data-i18n="recv.sign"></label>
+        <div class="input-wrap"><input id="signName" type="text" maxlength="20" autocomplete="off" aria-required="true" aria-describedby="hSign cSign"><span class="count" id="cSign">0/20</span></div>
+        <p class="hint error" id="hSign" aria-live="polite" hidden></p>
+      </div>
+      <div class="r-actions" id="planOneActions" hidden>
+        <button class="btn btn-lg btn-block" id="planOk" type="button" data-i18n="recv.planOk"></button>
+        <button class="btn btn-ghost btn-block" id="planOther" type="button" data-i18n="recv.planOther"></button>
+      </div>
+      <button class="btn btn-lg btn-block" id="planDone" type="button" disabled hidden data-i18n="recv.planDone"></button>
+    </div>
+
+    <div class="rstep" data-step="5">
       <div class="lottie end-lottie" data-lottie="holdHands" data-loop="1"></div>
-      <span class="eyebrow" data-i18n="final"></span>
-      <h2 data-i18n="recv.done"></h2>
+      <h2 id="endH"></h2>
       <p class="sub" id="endSub"></p>
       <div class="ticket-host" id="rTicket"></div>
       <button class="btn btn-block btn-lg" id="saveBtn" type="button" data-i18n="recv.save"></button>

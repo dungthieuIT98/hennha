@@ -260,6 +260,8 @@
     })();
 
     /* --- G5 preview: the real receiver flow inside a phone frame --- */
+    $("#c5h").textContent = HN.t("c5.h2");
+    $("#c5s").textContent = HN.t("c5.sub");
     function loadPreview() {
       const enc = HN.encodeInvite(draftInvite("preview"));
       const ok = !!HN.decodeInvite(enc);
@@ -382,17 +384,7 @@
       if (navigator.share) { try { await navigator.share({ text, url: pub.url }); } catch (_) { /* cancelled */ } return; }
       HN.copy((text ? text + " " : "") + pub.url, HN.t("c7.copied"));
     });
-    const fb = $("#fbOpts");
-    HN.SOURCES.forEach((s) => {
-      const b = el("button", "chip", HN.t("src." + s));
-      b.type = "button";
-      b.addEventListener("click", () => {
-        HN.local.set("hn-source", { v: s, code: (HN.draft.get().published || {}).code, at: new Date().toISOString() });
-        b.classList.add("selected");
-        gsap.to(fb.children, { autoAlpha: 0, y: -8, stagger: 0.03, duration: 0.2, onComplete: () => { $("#fb").replaceChildren(el("p", "thanks", HN.t("c7.thanks"))); gsap.from(".thanks", { scale: 0.6, autoAlpha: 0, duration: 0.4, ease: "back.out(2.5)" }); } });
-      });
-      fb.append(b);
-    });
+    HN.feedback($("#fb"));
     $("#newBtn").addEventListener("click", () => { HN.draft.clear(); HN.render(); });
 
     if (step >= 2) renderTemplates();

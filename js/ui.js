@@ -154,6 +154,22 @@
     h.focus({ preventScroll: true });
   };
 
+  /* ---------- "how did you hear about us" chips, used on the home page and on the share step ---------- */
+  HN.feedback = (host) => {
+    const row = el("div", "chip-row");
+    HN.SOURCES.forEach((s) => {
+      const b = el("button", "chip", HN.t("src." + s));
+      b.type = "button";
+      b.addEventListener("click", () => {
+        HN.local.set("hn-source", { v: s, code: (HN.draft.get().published || {}).code, at: new Date().toISOString() });
+        b.classList.add("selected");
+        gsap.to(row.children, { autoAlpha: 0, y: -8, stagger: 0.03, duration: 0.2, onComplete: () => { host.replaceChildren(el("p", "thanks", HN.t("c7.thanks"))); gsap.from(host.firstChild, { scale: 0.6, autoAlpha: 0, duration: 0.4, ease: "back.out(2.5)" }); } });
+      });
+      row.append(b);
+    });
+    host.replaceChildren(el("p", null, HN.t("c7.fb")), row);
+  };
+
   /* ---------- toast / copy ---------- */
   let toastTimer;
   HN.toast = (msg) => {

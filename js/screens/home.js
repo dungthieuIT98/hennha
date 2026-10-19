@@ -1,5 +1,5 @@
 "use strict";
-/* HOME (G0): hero with a playable invite (envelope -> YES/NO -> stamp), journey map, ticket printer. */
+/* HOME (G0): hero with a playable invite (envelope -> YES/NO -> stamp), journey map, ticket pocket, feedback. */
 (() => {
   const HN = window.HN;
   const { $, $$, el } = HN;
@@ -37,14 +37,17 @@
     initDemo();
     initJourney(app);
 
-    // ticket printer: the ticket slides out of the slot once it scrolls into view
+    $$("[data-scramble]", app).forEach(HN.scramble);
+    HN.feedback($("#homeFb"));
+
+    // ticket pocket: the ticket rises out of the pocket once it scrolls into view
     const tk = HN.ticket({ from: "Minh", to: "Lan", when: HN.fmtWhen(HN.iso(HN.nextSaturday()), 19, 30), plans: ["trasua", "xemphim"], dodges: HN.NO_LIMIT, code: "k3x9m2pq" });
     $("#homeTicket .tk-feed").append(tk);
     HN.tilt(tk, 12);
     if (!HN.reduce) {
-      gsap.set(tk, { yPercent: -102 });
+      gsap.set(tk, { yPercent: 70 });
       onceVisible($(".ticket-sec", app), 0.4, () => {
-        const t = gsap.to(tk, { yPercent: 0, duration: 2.2, ease: "steps(14)" });
+        const t = gsap.to(tk, { yPercent: 0, duration: 1.6, ease: "power3.out" });
         HN.onLeave(() => t.kill());
       });
     }

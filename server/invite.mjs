@@ -41,7 +41,12 @@ export function makeInviteValidator(root) {
     if (!Array.isArray(o.plans) || o.plans.length < 1 || o.plans.length > PLAN_IDS.size) return null;
     if (!o.plans.every((p) => typeof p === "string" && PLAN_IDS.has(p))) return null;
     const plans = [...new Set(o.plans)];
+    // "pick": the sender left date and time to the receiver, so none may be sent
+    if (o.timeMode === "pick") {
+      if (o.date !== "" || o.hour !== null || o.minute !== null) return null;
+      return { code: o.code, from, to, message, plans, timeMode: "pick", date: "", hour: null, minute: null };
+    }
     if (!validDate(o.date) || !Number.isInteger(o.hour) || o.hour < 0 || o.hour > 23 || (o.minute !== 0 && o.minute !== 30)) return null;
-    return { code: o.code, from, to, message, plans, date: o.date, hour: o.hour, minute: o.minute };
+    return { code: o.code, from, to, message, plans, timeMode: "fixed", date: o.date, hour: o.hour, minute: o.minute };
   };
 }
