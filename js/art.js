@@ -113,34 +113,32 @@
   };
   HN.swayBloom = (b, delay) => HN.loop(gsap.to(b.flowers, { rotation: "+=14", transformOrigin: "50% 50%", duration: 2.6, ease: "sine.inOut", delay, stagger: { each: 0.3, repeat: -1, yoyo: true } }));
 
-  /* ---------- ticket ---------- */
-  function row(ico, label, value) {
+  /* ---------- thiệp hẹn (16/10: là thiệp mời, không còn là vé: bỏ dòng nút Không, đường xé, mã vạch, mã thiệp) ---------- */
+  function row(ico, label, value, tag) {
     const r = el("div", "t-row");
     const b = el("span", "badge", ico);
     b.setAttribute("aria-hidden", "true");
     const t = el("div");
     t.append(el("small", null, label), el("strong", null, value));
+    if (tag) t.append(el("span", "t-tag", tag));
     r.append(b, t);
     return r;
   }
   HN.dodgeText = (n) => HN.t(n >= HN.NO_LIMIT ? "dodge.auto" : n ? "dodge.then" : "dodge.none", { n });
-  const ticketCode = (t) => "#" + String(t.code || "").toUpperCase().slice(0, 8);
+  // t: { from, to, when, plans, timeProposed?, plansProposed? }; mục người nhận đề xuất có nhãn, kèm dòng chờ người gửi chốt
   HN.ticket = (t) => {
-    const tk = el("div", "ticket");
+    const tk = el("div", "ticket invite-card");
     tk.append(el("span", "holo"));
     const head = el("div", "t-head");
     head.append(el("span", null, HN.t("tk.head")));
     const names = el("div", "t-names");
     names.append(document.createTextNode(t.from + " "), el("span", "amp", "&"), document.createTextNode(" " + t.to));
-    tk.append(head, names, row("📅", HN.t("tk.when"), t.when || HN.t("tk.theyPick")));
+    const by = HN.t("tk.by", { name: t.to });
+    tk.append(head, names, row("📅", HN.t("tk.when"), t.when || HN.t("tk.theyPick"), t.timeProposed && by));
     const plans = HN.planList(t.plans);
     if (!plans.length) tk.append(row("🍿", HN.t("tk.plan"), HN.t("tk.notPicked")));
-    plans.forEach((p, i) => tk.append(row(p.ico, plans.length > 1 ? HN.t("tk.planN", { n: i + 1 }) : HN.t("tk.plan"), HN.planName(p))));
-    tk.append(row("🙈", HN.t("tk.noBtn"), HN.dodgeText(t.dodges)));
-    tk.append(el("div", "t-perf"));
-    const foot = el("div", "t-foot");
-    foot.append(el("span", "t-bar"), el("span", "t-code", ticketCode(t)));
-    tk.append(foot);
+    plans.forEach((p, i) => tk.append(row(p.ico, plans.length > 1 ? HN.t("tk.planN", { n: i + 1 }) : HN.t("tk.plan"), HN.planName(p), t.plansProposed && by)));
+    if (t.timeProposed || t.plansProposed) tk.append(el("p", "t-wait", HN.t("tk.wait", { name: t.from })));
     return tk;
   };
 
@@ -164,6 +162,7 @@
     const g = c.getContext("2d");
     try { await Promise.all([document.fonts.load('800 80px "Baloo 2"'), document.fonts.load('700 30px "Nunito"')]); } catch (_) { /* system font fallback */ }
     const DISPLAY = '"Baloo 2", system-ui, sans-serif', BODY = '"Nunito", system-ui, sans-serif';
+    const proposal = !!(t.timeProposed || t.plansProposed);
 
     const bg = g.createLinearGradient(0, 0, 0, H);
     bg.addColorStop(0, "#07060f"); bg.addColorStop(0.45, "#1e1145"); bg.addColorStop(0.8, "#5b1d5e"); bg.addColorStop(1, "#ff4f8b");
@@ -176,7 +175,7 @@
 
     g.textAlign = "center"; g.textBaseline = "alphabetic";
     g.fillStyle = "#ffd166"; g.font = "800 44px " + DISPLAY;
-    g.fillText(HN.t("tk.done"), W / 2, 300);
+    g.fillText(HN.t(proposal ? "tk.doneProposed" : "tk.done"), W / 2, 300);
 
     const x = 90, y = 380, w = W - 180, h = 1200;
     rr(g, x, y, w, h, 56); g.fillStyle = "rgba(255,255,255,.09)"; g.fill();
@@ -186,7 +185,7 @@
 
     g.font = "800 34px " + DISPLAY; g.fillStyle = "#22d3ee";
     g.textAlign = "left"; g.fillText(HN.t("tk.forTwo"), x + 64, y + 96);
-    g.textAlign = "right"; g.fillText("★ ADMIT 2", x + w - 64, y + 96);
+    g.textAlign = "right"; g.font = "56px system-ui, sans-serif"; g.fillText("💌", x + w - 64, y + 104);
     const dash = (yy) => { g.save(); g.setLineDash([16, 14]); g.strokeStyle = "rgba(255,255,255,.25)"; g.lineWidth = 3; g.beginPath(); g.moveTo(x + 50, yy); g.lineTo(x + w - 50, yy); g.stroke(); g.restore(); };
     dash(y + 140);
 
@@ -202,28 +201,28 @@
 
     const plans = HN.planList(t.plans);
     const up = (s) => s.toLocaleUpperCase(HN.t("locale"));
-    const rows = [["📅", up(HN.t("tk.when")), t.when || HN.t("tk.notPicked")]];
+    const by = HN.t("tk.by", { name: t.to });
+    const rows = [["📅", up(HN.t("tk.when")), t.when || HN.t("tk.notPicked"), t.timeProposed ? by : ""]];
     const shown = plans.length > 3 ? plans.slice(0, 2) : plans;
-    shown.forEach((p, i) => rows.push([p.ico, up(plans.length > 1 ? HN.t("tk.planN", { n: i + 1 }) : HN.t("tk.plan")), HN.planName(p)]));
-    if (plans.length > 3) rows.push(["✨", up(HN.t("tk.more")), HN.t("tk.moreN", { n: plans.length - 2 })]);
-    rows.push(["🙈", up(HN.t("tk.noBtn")), HN.dodgeText(t.dodges)]);
+    shown.forEach((p, i) => rows.push([p.ico, up(plans.length > 1 ? HN.t("tk.planN", { n: i + 1 }) : HN.t("tk.plan")), HN.planName(p), t.plansProposed ? by : ""]));
+    if (plans.length > 3) rows.push(["✨", up(HN.t("tk.more")), HN.t("tk.moreN", { n: plans.length - 2 }), ""]);
     let ry = y + 420;
-    rows.forEach(([ico, label, value], i) => {
+    rows.forEach(([ico, label, value, tag], i) => {
       if (i) dash(ry - 68);
       g.fillStyle = "rgba(255,255,255,.92)"; g.beginPath(); g.arc(x + 112, ry, 46, 0, Math.PI * 2); g.fill();
       g.textAlign = "center"; g.textBaseline = "middle"; g.font = "50px system-ui, sans-serif"; g.fillText(ico, x + 112, ry + 3);
       g.textAlign = "left"; g.textBaseline = "alphabetic";
       g.fillStyle = "#b9b0d6"; g.font = "700 28px " + BODY; g.fillText(label, x + 186, ry - 16);
+      if (tag) { g.textAlign = "right"; g.fillStyle = "#ff9cc2"; g.font = "800 28px " + BODY; g.fillText(tag, x + w - 64, ry - 16); g.textAlign = "left"; }
       g.fillStyle = "#fff"; g.font = "800 46px " + DISPLAY; g.fillText(fitText(g, value, w - 250), x + 186, ry + 36);
       ry += 136;
     });
 
-    dash(y + h - 150);
-    g.fillStyle = "rgba(255,255,255,.75)";
-    let bx = x + 64;
-    for (let i = 0; i < 34; i++) { const bw = (i * 7) % 3 + 2; g.fillRect(bx, y + h - 110, bw, 60); bx += bw + 4 + ((i * 5) % 3); }
-    g.textAlign = "right"; g.fillStyle = "#d9d2f0"; g.font = "700 30px " + BODY;
-    g.fillText(ticketCode(t), x + w - 64, y + h - 66);
+    if (proposal) {
+      dash(y + h - 170);
+      g.textAlign = "center"; g.fillStyle = "#ffd166"; g.font = "800 42px " + DISPLAY;
+      g.fillText(fitText(g, HN.t("tk.wait", { name: t.from }), w - 120), W / 2, y + h - 90);
+    }
 
     g.textAlign = "center"; g.fillStyle = "rgba(255,255,255,.9)"; g.font = "800 40px " + DISPLAY;
     g.fillText(HN.t("tk.madeAt", { domain: HN.DOMAIN }), W / 2, H - 150);

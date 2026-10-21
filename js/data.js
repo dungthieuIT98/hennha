@@ -5,7 +5,7 @@ window.HN = {
   PAYMENT_ENABLED: false,
   NO_LIMIT: 4,
 
-  TEMPLATES: [{ id: "t1" }, { id: "t2" }, { id: "t5" }],
+  TEMPLATES: [{ id: "t6" }, { id: "t1" }, { id: "t2" }, { id: "t5" }],
 
   PLANS: [
     { id: "trasua", ico: "🧋", group: "an" },
@@ -14,22 +14,21 @@ window.HN = {
     { id: "nuong", ico: "🍖", group: "an" },
     { id: "oc", ico: "🐚", group: "an" },
     { id: "kem", ico: "🍦", group: "an" },
-    { id: "che", ico: "🍧", group: "an" },
     { id: "pizza", ico: "🍕", group: "an" },
     { id: "sushi", ico: "🍣", group: "an" },
-    { id: "micay", ico: "🌶️", group: "an" },
     { id: "garan", ico: "🍗", group: "an" },
-    { id: "bun", ico: "🍜", group: "an" },
     { id: "an-gi-cung-duoc", ico: "🍽️", group: "an" },
     { id: "xemphim", ico: "🎬", group: "choi" },
     { id: "daopho", ico: "🚶", group: "choi" },
-    { id: "daoho", ico: "🌊", group: "choi" },
     { id: "karaoke", ico: "🎤", group: "choi" },
     { id: "photobooth", ico: "📸", group: "choi" },
-    { id: "khuvuichoi", ico: "🎡", group: "choi" },
     { id: "workshop", ico: "🎨", group: "choi" },
     { id: "chodem", ico: "🏮", group: "choi" },
     { id: "concert", ico: "🎵", group: "choi" },
+    { id: "dapxe", ico: "🚲", group: "choi" },
+    { id: "sup", ico: "🏄", group: "choi" },
+    { id: "leonui", ico: "🧗", group: "choi" },
+    { id: "baotang", ico: "🏛️", group: "choi" },
     { id: "di-dau-cung-duoc", ico: "✨", group: "choi" },
   ],
 
@@ -52,5 +51,5 @@ window.HN = {
     { id: "three", price: 39000, pill: true },
   ],
 
-  SOURCES: ["tiktok", "facebook", "instagram", "friend", "other"],
+  SOURCES: ["social", "google", "invite", "friend", "other"],
 };

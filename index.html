@@ -122,7 +122,7 @@
 </section>
 
 <footer class="footer wrap">
-  <nav><a href="#/" data-soon="foot.privacy" data-i18n="foot.privacy"></a><a href="#/" data-soon="foot.terms" data-i18n="foot.terms"></a><a href="#/" data-soon="foot.contact" data-i18n="foot.contact"></a><!-- <a href="#/login" data-i18n="nav.login"></a> --></nav>
+  <nav><a href="#/privacy" data-i18n="foot.privacy"></a><a href="#/terms" data-i18n="foot.terms"></a><a href="#/contact" data-i18n="foot.contact"></a><!-- <a href="#/login" data-i18n="nav.login"></a> --></nav>
   <p data-i18n="foot.note"></p>
 </footer>
 </template>
@@ -209,7 +209,7 @@
         <div class="choices" id="pricing"></div>
         <div class="checks">
           <label class="check"><input type="checkbox" id="age"> <span data-i18n="c6.age"></span></label>
-          <label class="check"><input type="checkbox" id="terms"> <span><span data-i18n="c6.agree"></span><a href="#/create" data-soon="foot.terms" data-i18n="foot.terms"></a><span data-i18n="c6.and"></span><a href="#/create" data-soon="foot.policy" data-i18n="foot.policy"></a></span></label>
+          <label class="check"><input type="checkbox" id="terms"> <span><span data-i18n="c6.agree"></span><a href="#/terms" target="_blank" rel="noopener" data-i18n="foot.terms"></a><span data-i18n="c6.and"></span><a href="#/privacy" target="_blank" rel="noopener" data-i18n="foot.policy"></a></span></label>
         </div>
         <p class="hint" id="hCreate" data-i18n="c6.hint"></p>
         <div class="nav"><button class="btn btn-ghost" type="button" data-back data-i18n="back"></button><button class="btn" id="createBtn" type="button" aria-describedby="hCreate" disabled data-i18n="createLink"></button></div>
@@ -417,6 +417,53 @@
 </section>
 </template>
 
+<!-- ============================ P · PRIVACY ============================ -->
+<template id="tpl-privacy">
+<section class="doc wrap">
+  <article class="doc-card glass glow-border">
+    <span class="eyebrow" data-i18n="doc.eyebrow"></span>
+    <h1 data-i18n="pv.h1"></h1>
+    <p class="sub" data-i18n="pv.lead"></p>
+    <p class="doc-date" data-i18n="doc.updated"></p>
+    <p data-i18n="pv.p1"></p>
+    <p data-i18n="pv.p2"></p>
+    <p data-i18n="pv.p3"></p>
+    <p data-i18n="pv.p4"></p>
+    <div class="doc-actions"><a class="btn btn-ghost" href="#/" data-i18n="doc.home"></a></div>
+  </article>
+</section>
+</template>
+
+<!-- ============================ T · TERMS ============================ -->
+<template id="tpl-terms">
+<section class="doc wrap">
+  <article class="doc-card glass glow-border">
+    <span class="eyebrow" data-i18n="doc.eyebrow"></span>
+    <h1 data-i18n="tm.h1"></h1>
+    <p class="sub" data-i18n="tm.lead"></p>
+    <p class="doc-date" data-i18n="doc.updated"></p>
+    <ol class="doc-list">
+      <li data-i18n="tm.l1"></li>
+      <li data-i18n="tm.l2"></li>
+      <li data-i18n="tm.l3"></li>
+      <li data-i18n="tm.l4"></li>
+    </ol>
+    <div class="doc-actions"><a class="btn btn-ghost" href="#/" data-i18n="doc.home"></a></div>
+  </article>
+</section>
+</template>
+
+<!-- ============================ C · CONTACT ============================ -->
+<template id="tpl-contact">
+<section class="doc wrap">
+  <article class="doc-card glass glow-border">
+    <span class="eyebrow" data-i18n="doc.eyebrow"></span>
+    <h1 data-i18n="ct.h1"></h1>
+    <div class="doc-actions"><a class="btn btn-ghost" href="#/" data-i18n="doc.home"></a></div>
+  </article>
+</section>
+</template>
+
 <script src="vendor/gsap.min.js"></script>
 <script src="js/data.js"></script>
 <script src="js/strings.js"></script>
@@ -425,10 +472,13 @@
 <script src="js/fx.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/art.js"></script>
+<script src="js/feedback.js"></script>
 <script src="js/screens/home.js"></script>
 <script src="js/screens/create.js"></script>
+<script src="js/screens/create-preview.js"></script>
 <script src="js/screens/receiver.js"></script>
 <script src="js/screens/manage.js"></script>
+<script src="js/screens/pages.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

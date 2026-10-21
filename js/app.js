@@ -8,7 +8,7 @@
   function route() {
     const parts = location.hash.replace(/^#\/?/, "").split("/");
     // login: "login" is off with Google sign-in
-    return { name: ({ create: "create", n: "n", q: "q" })[parts[0]] || "home", parts };
+    return { name: ({ create: "create", n: "n", q: "q", privacy: "privacy", terms: "terms", contact: "contact" })[parts[0]] || "home", parts };
   }
   function mount(r) {
     document.body.dataset.route = r.name;

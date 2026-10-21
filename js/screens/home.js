@@ -1,123 +1,68 @@
 "use strict";
-/* HOME (G0): hero with a playable invite (envelope -> YES/NO -> stamp), journey map, ticket pocket, feedback. */
+/* HOME (G0), tinh chỉnh 13/10: hero + thiệp mẫu (mở thư -> hỏi -> YES), hành trình 4 chặng có thư bay,
+   vé mẫu in ra khi cuộn tới, nút tạo thiệp dính đáy trên điện thoại, lời kêu gọi cuối. */
 (() => {
   const HN = window.HN;
   const { $, $$, el } = HN;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   HN.SCREENS.home = () => {
     const app = $("#app");
     const chars = HN.split($(".hero-title .split", app));
-    const env = HN.loveEnvelope({ to: "Lan" });
-    $("#demoLove").append(env);
-    const bloom = HN.bloom($("#demoBloom"));
     HN.mountLotties(app);
 
     const intro = gsap.timeline({ delay: 0.05 })
-      .from(chars, { y: 60, scale: 0.4, rotation: () => gsap.utils.random(-30, 30), autoAlpha: 0, duration: 0.6, stagger: 0.02, ease: "back.out(2.2)" })
+      .from(".chip-live", { y: -16, autoAlpha: 0, duration: 0.5, ease: "back.out(2)" })
+      .from(chars, { y: 60, scale: 0.4, rotation: () => gsap.utils.random(-30, 30), autoAlpha: 0, duration: 0.6, stagger: 0.02, ease: "back.out(2.2)" }, "-=0.2")
       .fromTo(".grad-line", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.9, ease: "power3.inOut" }, "-=0.4")
-      .from("#demoCard", { scale: 0.7, rotation: -6, autoAlpha: 0, duration: 1.1, ease: "elastic.out(1, 0.6)" }, 0.25)
-      .add(HN.growBloom(bloom, 1), 0.7);
+      .from("#demoCard", { scale: 0.7, rotation: -6, autoAlpha: 0, duration: 1.1, ease: "elastic.out(1, 0.6)" }, 0.25);
     HN.onLeave(() => intro.kill());
 
+    $$("[data-scramble]", app).forEach(HN.scramble);
     $$(".magnetic", app).forEach((n) => HN.magnetic(n));
 
-    // the envelope floats; the heart opens it, then the card moves on to the question
-    const envFloat = HN.loop(gsap.to(env, { y: -10, duration: 1.8, yoyo: true, repeat: -1, ease: "sine.inOut" }));
-    const sway = HN.swayBloom(bloom, intro.duration());
-    const heart = $(".nheart", env);
-    let envBusy = false;
-    heart.addEventListener("click", () => {
-      if (envBusy) return;
-      envBusy = true;
-      HN.burstAt(heart, 24);
-      const t = HN.openLove(env).to({}, { duration: 0.9 }).add(() => swap($("#dEnv"), $("#dQ"), $("#dYes")));
-      HN.onLeave(() => t.kill());
-    });
-
-    initDemo();
-    initJourney(app);
-
-    $$("[data-scramble]", app).forEach(HN.scramble);
-    HN.feedback($("#homeFb"));
-
-    // ticket pocket: the ticket rises out of the pocket once it scrolls into view
-    const tk = HN.ticket({ from: "Minh", to: "Lan", when: HN.fmtWhen(HN.iso(HN.nextSaturday()), 19, 30), plans: ["trasua", "xemphim"], dodges: HN.NO_LIMIT, code: "k3x9m2pq" });
-    $("#homeTicket .tk-feed").append(tk);
-    HN.tilt(tk, 12);
-    if (!HN.reduce) {
-      gsap.set(tk, { yPercent: 70 });
-      onceVisible($(".ticket-sec", app), 0.4, () => {
-        const t = gsap.to(tk, { yPercent: 0, duration: 1.6, ease: "power3.out" });
-        HN.onLeave(() => t.kill());
-      });
-    }
+    const demoLoops = initDemo(intro);
+    const journeyLoop = initJourney();
+    const ticketSway = initTicket();
+    initStickyCta();
+    HN.feedbackBox($("#homeFb"), { where: "home" });
 
     HN.pauseOffscreen([
-      [$(".hero-stage", app), [envFloat, sway]],
+      [$(".hero-stage", app), demoLoops],
+      [$(".journey", app), [journeyLoop]],
+      [$(".ticket-sec", app), [ticketSway]],
       [$(".cta-band", app), []],
       ...$$(".grad-text", app).map((n) => [n, []]),
     ]);
     HN.reveal(app);
   };
 
-  // runs fn once when node is first at least `ratio` visible, then lets go of the observer
-  function onceVisible(node, ratio, fn) {
-    if (!("IntersectionObserver" in window)) { fn(); return; }
-    const io = new IntersectionObserver((entries) => {
-      if (!entries.some((e) => e.isIntersecting)) return;
-      io.disconnect();
-      fn();
-    }, { threshold: ratio });
-    io.observe(node);
-    HN.onLeave(() => io.disconnect());
-  }
+  // thiệp mẫu: phong bì tim đập -> bấm tim (hoặc tự mở sau 3 giây) -> câu hỏi, nút Không né -> YES thì confetti
+  function initDemo(intro) {
+    const envStage = $("#dEnv"), stage = $("#dQ"), done = $("#dDone");
+    const yes = $("#dYes"), no = $("#dNo"), run = $("#dRun");
+    const env = HN.loveEnvelope({ to: "Lan", letter: HN.t("home.envLetter") });
+    $("#demoLove").append(env);
+    const bloom = HN.bloom($("#demoBloom"));
+    intro.add(HN.growBloom(bloom, 1), 0.7);
+    const envFloat = HN.loop(gsap.to(env, { y: -10, duration: 1.8, yoyo: true, repeat: -1, ease: "sine.inOut" }));
+    const sway = HN.swayBloom(bloom, intro.duration());
+    const heart = $(".nheart", env);
 
-  // card stage change; hands focus to `focusTo` only when focus was inside the stage that goes away
-  function swap(from, to, focusTo) {
-    const had = from.contains(document.activeElement);
-    gsap.to(from, {
-      autoAlpha: 0, scale: 0.92, duration: 0.3,
-      onComplete: () => {
-        from.hidden = true;
-        to.hidden = false;
-        if (had && focusTo) focusTo.focus({ preventScroll: true });
-        gsap.fromTo(to, { autoAlpha: 0, scale: 0.92 }, { autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.6)" });
-      },
-    });
-  }
-
-  // 4 stops: the letter flies along the line, each stop pops as it passes
-  function initJourney(app) {
-    const wrap = $(".jmap-wrap", app), fill = $(".jline-fill", app), flyer = $(".jflyer", app);
-    const dots = $$(".jdot", app), labels = $$(".jmap b", app), pin = $(".jpin", app);
-    if (HN.reduce) return;
-    gsap.set(fill, { scaleX: 0 });
-    gsap.set(dots, { scale: 0, autoAlpha: 0 });
-    gsap.set(labels, { autoAlpha: 0, y: 8 });
-    gsap.set(pin, { autoAlpha: 0, y: -16 });
-    onceVisible(wrap, 0.5, () => {
-      const run = 2.4, dx = wrap.getBoundingClientRect().width * 0.75;
-      const tl = gsap.timeline()
-        .fromTo(flyer, { x: 0, autoAlpha: 1 }, { x: dx, duration: run, ease: "none" }, 0)
-        .to(fill, { scaleX: 1, duration: run, ease: "none" }, 0);
-      dots.forEach((d, i) => {
-        const at = (i / (dots.length - 1)) * run * 0.92;
-        tl.to(d, { scale: 1, autoAlpha: 1, duration: 0.4, ease: "back.out(2.5)" }, at)
-          .to(labels[i], { autoAlpha: 1, y: 0, duration: 0.35, ease: "power2.out" }, at + 0.1);
-      });
-      tl.to(flyer, { autoAlpha: 0, scale: 0.4, duration: 0.3, ease: "power2.in" }, run)
-        .to(pin, { autoAlpha: 1, y: 0, duration: 0.5, ease: "bounce.out" }, run);
-      HN.onLeave(() => tl.kill());
-    });
-  }
-
-  // the NO button hops around inside the demo card, never over YES or (if it can help it) the question
-  function initDemo() {
-    const stage = $("#dQ"), done = $("#dDone"), yes = $("#dYes"), no = $("#dNo"), run = $("#dRun");
-    let dodges = 0, gone = false, floating = false, last = 0, autoYes = null;
+    let dodges = 0, gone = false, floating = false, last = 0, autoYes = null, envBusy = false;
     HN.onLeave(() => autoYes && autoYes.kill());
-    const overlaps = (a, b, g) => !(a.x + a.w + g < b.x || b.x + b.w + g < a.x || a.y + a.h + g < b.y || b.y + b.h + g < a.y);
 
+    // the envelope floats; the heart opens it, then the card moves on to the question
+    heart.addEventListener("click", () => {
+      if (envBusy) return;
+      envBusy = true;
+      HN.burstAt(heart, 24);
+      const t = HN.openLove(env).to({}, { duration: 0.9 }).add(() => swap(envStage, stage, yes));
+      HN.onLeave(() => t.kill());
+    });
+
+    // nút Không né trong khung thiệp, không bao giờ đè lên YES hay câu hỏi
+    const overlaps = (a, b, g) => !(a.x + a.w + g < b.x || b.x + b.w + g < a.x || a.y + a.h + g < b.y || b.y + b.h + g < a.y);
     function place(ys) {
       const c = stage.getBoundingClientRect(), yr = yes.getBoundingClientRect(), qr = $(".q-wrap", stage).getBoundingClientRect();
       const k = ys / (gsap.getProperty(yes, "scale") || 1);
@@ -172,7 +117,7 @@
     // a short rain of confetti inside the card, on top of the page-wide burst
     const confetti = $("#dConfetti");
     function rain() {
-      if (HN.reduce) return;
+      if (reduce) return;
       const h = confetti.offsetHeight;
       const bits = Array.from({ length: 28 }, () => confetti.appendChild(el("i")));
       const t = gsap.fromTo(bits,
@@ -208,5 +153,111 @@
       stage.hidden = false;
       yes.focus({ preventScroll: true });
     });
+    return [envFloat, sway];
+  }
+
+  // card stage change; hands focus to `focusTo` only when focus was inside the stage that goes away
+  function swap(from, to, focusTo) {
+    const had = from.contains(document.activeElement);
+    gsap.to(from, {
+      autoAlpha: 0, scale: 0.92, duration: 0.3,
+      onComplete: () => {
+        from.hidden = true;
+        to.hidden = false;
+        if (had && focusTo) focusTo.focus({ preventScroll: true });
+        gsap.fromTo(to, { autoAlpha: 0, scale: 0.92 }, { autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.6)" });
+      },
+    });
+  }
+
+  // hành trình: nét đứt tự vẽ, lá thư bay từ chặng này sang chặng kia, chặng nảy lên khi tới, ghim rơi ở chặng cuối
+  function initJourney() {
+    const dots = $$(".jmap .jdot"), labels = $$(".jmap b"), fill = $(".jline-fill"), flyer = $(".jflyer"), pin = $(".jpin");
+    if (reduce) { gsap.set(flyer, { autoAlpha: 0 }); return null; }
+    const STOPS = [12.5, 37.5, 62.5, 87.5];
+    const pop = (k) => gsap.timeline()
+      .to(dots[k], { scale: 1.2, opacity: 1, duration: 0.18, ease: "power2.out" })
+      .to(dots[k], { scale: 1, duration: 0.45, ease: "back.out(3)" })
+      .to(labels[k], { opacity: 1, duration: 0.3 }, 0);
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.4 })
+      .set(fill, { clipPath: "inset(0 100% 0 0)", opacity: 1 })
+      .set(dots, { scale: 0.86, opacity: 0.45 })
+      .set(labels, { opacity: 0.7 })
+      .set(pin, { y: -28, autoAlpha: 0 })
+      .set(flyer, { left: STOPS[0] + "%", y: 0, rotation: 0, scale: 0.5, autoAlpha: 0 })
+      .to(flyer, { scale: 1, autoAlpha: 1, duration: 0.35, ease: "back.out(2)" })
+      .add(pop(0), "-=0.1");
+    STOPS.slice(1).forEach((x, i) => {
+      tl.to(flyer, { left: x + "%", duration: 0.8, ease: "power1.inOut" }, "+=0.3")
+        .to(flyer, { y: -14, rotation: 12, duration: 0.4, ease: "sine.out", yoyo: true, repeat: 1 }, "<")
+        .to(fill, { clipPath: `inset(0 ${(100 * (2 - i)) / 3}% 0 0)`, duration: 0.8, ease: "power1.inOut" }, "<")
+        .add(pop(i + 1));
+    });
+    tl.to(pin, { y: 0, autoAlpha: 1, duration: 0.6, ease: "bounce.out" }, "-=0.3")
+      .add(() => HN.burstAt(dots[3], 10), "<0.15")
+      .to(flyer, { scale: 0.4, autoAlpha: 0, duration: 0.3 }, "<")
+      .to({}, { duration: 1.8 })
+      .to(dots, { scale: 0.86, opacity: 0.45, duration: 0.4 })
+      .to(labels, { opacity: 0.7, duration: 0.4 }, "<")
+      .to([fill, pin], { opacity: 0, duration: 0.4 }, "<");
+    return HN.loop(tl);
+  }
+
+  // thiệp mẫu trượt ra khỏi phong bì khi cuộn tới, đóng dấu, rồi nhấp nhô nhẹ
+  function initTicket() {
+    const host = $("#homeTicket"), feed = $(".tk-feed", host);
+    const tk = HN.ticket({ from: "Minh", to: "Lan", when: HN.fmtWhen(HN.iso(HN.nextSaturday()), 19, 30), plans: ["trasua", "xemphim"], dodges: HN.NO_LIMIT, code: "k3x9m2pq" });
+    const stamp = el("span", "tk-stamp", HN.t("home.stamp"));
+    stamp.setAttribute("aria-hidden", "true");
+    feed.append(tk, stamp);
+    HN.tilt(tk, 12);
+
+    // pauseOffscreen gọi .paused(); tween đung đưa chỉ có sau khi in xong nên đi qua một lớp bọc
+    let swayTw = null, offscreen = false;
+    const ctl = { paused: (p) => { offscreen = p; if (swayTw) swayTw.paused(p); } };
+    const finish = () => {
+      host.classList.add("printed");
+      swayTw = HN.loop(gsap.to(feed, { y: -6, duration: 2.2, yoyo: true, repeat: -1, ease: "sine.inOut" }));
+      if (swayTw && offscreen) swayTw.paused(true);
+    };
+    if (reduce || !("IntersectionObserver" in window)) { host.classList.add("printed"); return ctl; }
+    gsap.set(tk, { yPercent: 75 });
+    gsap.set(stamp, { autoAlpha: 0 });
+    const io = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      io.disconnect();
+      const t = gsap.timeline({ onComplete: finish })
+        .to(tk, { yPercent: 0, duration: 1.1, ease: "back.out(1.3)" })
+        .fromTo(stamp, { scale: 2.4, rotation: -30, autoAlpha: 0 }, { scale: 1, rotation: -12, autoAlpha: 1, duration: 0.45, ease: "back.out(3)" });
+      HN.onLeave(() => t.kill());
+    }, { threshold: 0.35 });
+    io.observe(host);
+    HN.onLeave(() => io.disconnect());
+    return ctl;
+  }
+
+  // điện thoại: nút Tạo thiệp dính đáy khi đã cuộn qua hero và chưa tới phần kêu gọi cuối (CSS ẩn trên màn rộng)
+  function initStickyCta() {
+    const heroCta = $(".hero-cta"), band = $(".cta-band");
+    if (!heroCta || !band || !("IntersectionObserver" in window)) return;
+    const a = el("a", "btn btn-lg sticky-cta");
+    a.href = "#/create";
+    a.setAttribute("data-new", "");
+    const arrow = el("span", null, "→");
+    arrow.setAttribute("aria-hidden", "true");
+    a.append(el("span", null, HN.t("home.cta")), document.createTextNode(" "), arrow);
+    document.body.append(a);
+    HN.onLeave(() => a.remove());
+    let pastHero = false, bandBelow = true;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.target === heroCta) pastHero = !e.isIntersecting && e.boundingClientRect.top < 0;
+        else bandBelow = !e.isIntersecting && e.boundingClientRect.top > 0;
+      });
+      a.classList.toggle("show", pastHero && bandBelow);
+    });
+    io.observe(heroCta);
+    io.observe(band);
+    HN.onLeave(() => io.disconnect());
   }
 })();
