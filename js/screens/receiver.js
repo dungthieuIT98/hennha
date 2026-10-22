@@ -6,7 +6,7 @@
   const HN = window.HN;
   const { $, $$, el } = HN;
   const STEPS = 5;
-  const DEMO = () => ({ code: "demo00", from: "Minh", to: "Lan", message: HN.renderTemplate(HN.t("tpl.t1"), "Lan"), timeMode: "fixed", date: HN.iso(HN.nextSaturday()), hour: 19, minute: 30, plans: ["trasua", "cafe", "xemphim"] });
+  const DEMO = () => ({ code: "demo00", from: "Minh", to: "Thảo", message: HN.renderTemplate(HN.t("tpl.t7"), "Thảo"), timeMode: "fixed", date: HN.iso(HN.nextSaturday()), hour: 19, minute: 30, plans: ["cafe", "rooftop", "xemphim"] });
 
   HN.SCREENS.n = (r) => {
     const app = $("#app");
@@ -58,7 +58,7 @@
     }
 
     /* N1 thư: phong bì trắng, hoa nở; chạm tim thì mở thư rồi vào thẳng câu rủ */
-    const wenv = HN.loveEnvelope({ to: greet });
+    const wenv = HN.loveEnvelope({ to: greet, letter: "" });
     $("#love").insertBefore(wenv, $("#loveHint"));
     const heart = $(".nheart", wenv);
     const bloom = HN.bloom($("#bloom"));
@@ -103,58 +103,18 @@
       gsap.fromTo("#askButtons > *", { scale: 0 }, { scale: 1, stagger: 0.12, duration: 0.5, ease: "back.out(2.6)", delay: 0.4, clearProps: "transform" });
       HN.loop(gsap.to(".ask-emoji", { rotation: 10, y: -6, duration: 0.9, yoyo: true, repeat: -1, ease: "sine.inOut", delay: 0.8 }));
     };
-    const yesBtn = $("#yesBtn"), noBtn = $("#noBtn");
-    let gone = false, last = 0, autoYes = null;
-    function toBody() {
-      if (noBtn.parentElement === document.body) return;
-      const hadFocus = document.activeElement === noBtn;
-      const rect = noBtn.getBoundingClientRect();
-      document.body.append(noBtn);
-      noBtn.classList.add("runaway-no");
-      gsap.set(noBtn, { x: rect.left, y: rect.top });
-      if (hadFocus) noBtn.focus({ preventScroll: true });
-    }
-    function dodge(e) {
-      if (e) e.preventDefault();
-      if (gone || step !== 2) return;
-      const now = Date.now();
-      if (now - last < 150) return;
-      last = now;
-      ans.dodges = Math.min(ans.dodges + 1, HN.NO_LIMIT);
-      const ys = Math.min(1 + ans.dodges * 0.16, 2);
-      const k = ys / (gsap.getProperty(yesBtn, "scale") || 1);
-      const yr = yesBtn.getBoundingClientRect();
-      const cx = yr.left + yr.width / 2, cy = yr.top + yr.height / 2, hw = (yr.width * k) / 2 + 24, hh = (yr.height * k) / 2 + 24;
-      gsap.to(yesBtn, { scale: ys, duration: 0.4, ease: "back.out(2.5)" });
-      if (ans.dodges >= HN.NO_LIMIT) { flee(); return; }
-      const noTexts = HN.t("no.texts");
-      noBtn.textContent = noTexts[ans.dodges % noTexts.length];
-      toBody();
-      const w = noBtn.offsetWidth, h = noBtn.offsetHeight, pad = 14, top = 76;
-      const maxX = Math.max(pad, innerWidth - w - pad), maxY = Math.max(top, innerHeight - h - pad);
-      let x = pad, y = top;
-      for (let i = 0; i < 80; i++) {
-        const tx = pad + Math.random() * (maxX - pad), ty = top + Math.random() * (maxY - top);
-        if (tx + w < cx - hw || tx > cx + hw || ty + h < cy - hh || ty > cy + hh) { x = tx; y = ty; break; }
-      }
-      gsap.to(noBtn, { x, y, rotation: gsap.utils.random(-15, 15), scale: Math.max(1 - ans.dodges * 0.05, 0.7), duration: 0.3, ease: "back.out(2)" });
-    }
-    function flee() {
-      gone = true;
-      if (document.activeElement === noBtn) yesBtn.focus({ preventScroll: true });
-      toBody();
-      gsap.to(noBtn, { x: "+=" + innerWidth * 0.6, y: "-=" + innerHeight * 0.7, rotation: 60, scale: 0.3, autoAlpha: 0, duration: 0.7, ease: "power2.in", onComplete: () => { noBtn.hidden = true; } });
-      const m = $("#runawayMsg");
-      m.hidden = false;
-      gsap.from(m, { y: 10, autoAlpha: 0, duration: 0.35 });
-      autoYes = gsap.delayedCall(1.3, () => yesBtn.click());
-      HN.onLeave(() => autoYes.kill());
-    }
-    function parkNo() { if (noBtn.parentElement === document.body) noBtn.hidden = true; }
-    HN.onLeave(() => noBtn.remove());
-    HN.dodgeable(noBtn, dodge);
+    // nút Không né 5 lần quanh khung thư (luật chung ở runaway.js), lần 5 tan biến; chờ người nhận tự bấm Đồng ý
+    const yesBtn = $("#yesBtn");
+    const step2 = steps[1];
+    const runner = HN.runawayNo({
+      no: $("#noBtn"), yes: yesBtn, frame: $(".recv-card", app), reminder: $("#runawayMsg"),
+      avoid: () => [$("#askFrom"), $(".ask-emoji", step2), $("#askTitle"), $(".sub", step2), $("#runawayMsg"), $(".recv-progress", app)],
+      isActive: () => step === 2,
+    });
+    function parkNo() { runner.park(); }
     yesBtn.addEventListener("click", () => {
-      if (autoYes) autoYes.kill();
+      runner.stop();
+      ans.dodges = runner.count();
       HN.burstAt(yesBtn);
       goTo(3);
     });
@@ -368,7 +328,7 @@
         const g = el("a", "btn btn-block", "Google Calendar");
         g.href = HN.gcalUrl(title, details, range); g.target = "_blank"; g.rel = "noopener noreferrer";
         const i = el("a", "btn btn-ghost btn-block", HN.t("recv.ics"));
-        i.href = icsUrl; i.download = "hen-nha.ics";
+        i.href = icsUrl; i.download = "didatehong.ics";
         sh.append(el("h3", null, HN.t("addCal")), el("p", "sub", HN.fmtWhen(ans.date, ans.hour, ans.minute)), g, i);
       });
       setTimeout(() => URL.revokeObjectURL(icsUrl), 120000);

@@ -213,7 +213,8 @@
           const b = el("button", "option" + (chosen.has(p.id) ? " selected" : ""));
           b.type = "button";
           b.setAttribute("aria-pressed", String(chosen.has(p.id)));
-          const badge = el("span", "badge", p.ico);
+          const badge = el("span", "badge badge-stk");
+          badge.append(el("span", "stk stk-" + p.group, p.ico));
           badge.setAttribute("aria-hidden", "true");
           b.append(badge, document.createTextNode(HN.planName(p)));
           b.addEventListener("click", () => {
@@ -278,54 +279,16 @@
     });
     $("#next5").addEventListener("click", () => goStep(6));
 
-    /* --- G6 pricing + consent --- */
+    /* --- G6 tạo link miễn phí + một ô xác nhận (22/10: bỏ gói 1 thiệp / 3 thiệp, gộp hai ô tick) --- */
     (() => {
-      let chosen = d.plan || "free";
-      function renderPricing() {
-        const host = $("#pricing");
-        host.replaceChildren();
-        HN.PRICING.forEach((p) => {
-          const b = el("button", "choice price-choice" + (p.id === chosen ? " selected" : ""));
-          b.type = "button";
-          b.setAttribute("aria-pressed", String(p.id === chosen));
-          const body = el("span", "c-body");
-          const t = el("span", "c-title", HN.t("price." + p.id + ".t"));
-          if (p.pill) t.append(el("span", "pill", HN.t("price." + p.id + ".pill")));
-          body.append(t, el("span", "c-sub", HN.t("price." + p.id + ".s")));
-          b.append(el("span", "dot"), body, el("b", "c-price", HN.fmtVnd(p.price)));
-          b.addEventListener("click", () => {
-            chosen = p.id;
-            HN.draft.set({ plan: chosen });
-            renderPricing();
-            $("#pricing .selected").focus({ preventScroll: true });
-          });
-          host.append(b);
-        });
-      }
-      renderPricing();
       const update = () => {
-        const ok = $("#age").checked && $("#terms").checked;
+        const ok = $("#terms").checked;
         $("#createBtn").disabled = !ok;
         $("#hCreate").hidden = ok;
       };
-      $("#age").addEventListener("change", update);
       $("#terms").addEventListener("change", update);
       update();
-      $("#createBtn").addEventListener("click", () => {
-        if (chosen === "free" || HN.PAYMENT_ENABLED) { publish(chosen); return; }
-        // fake door: paid plans are not on sale yet, so log the interest and give the card away
-        const log = HN.local.get("hn-fakedoor", []);
-        (Array.isArray(log) ? log : []).push({ plan: chosen, at: new Date().toISOString() });
-        HN.local.set("hn-fakedoor", log);
-        HN.sheet((sh, close) => {
-          const ok = el("button", "btn btn-block", HN.t("c6.freeBtn"));
-          ok.type = "button";
-          ok.addEventListener("click", () => close(() => publish(chosen)));
-          const gift = el("div", "big-emoji", "🎁");
-          gift.setAttribute("aria-hidden", "true");
-          sh.append(gift, el("h3", null, HN.t("c6.soonH")), el("p", "sub", HN.t("c6.soonP")), ok);
-        });
-      });
+      $("#createBtn").addEventListener("click", () => publish("free"));
     })();
 
     function publish(plan) {
@@ -375,8 +338,8 @@
       if (navigator.share) { try { await navigator.share({ text, url: pub.url }); } catch (_) { /* cancelled */ } return; }
       HN.copy((text ? text + " " : "") + pub.url, HN.t("c7.copied"));
     });
-    // góp ý 1 chạm rồi hỏi nguồn, trong cùng một khung
-    HN.feedbackBox($("#fb"), { where: "created", withSource: true });
+    // khối góp ý dùng chung: cảm nhận, góp ý, kênh biết đến, gửi một lần
+    HN.feedbackBox($("#fb"), { where: "created" });
     $("#newBtn").addEventListener("click", () => { HN.draft.clear(); HN.render(); });
 
     if (step >= 2) renderTemplates();

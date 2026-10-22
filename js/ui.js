@@ -213,7 +213,7 @@
     const row = el("div", "shot-actions");
     const dl = el("a", "btn btn-ghost btn-sm", HN.t("ui.download"));
     dl.href = url;
-    dl.download = "hen-nha.png";
+    dl.download = "didatehong.png";
     const closeBtn = el("button", "btn btn-sm", HN.t("ui.close"));
     closeBtn.type = "button";
     closeBtn.autofocus = true;

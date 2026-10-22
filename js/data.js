@@ -1,35 +1,39 @@
 "use strict";
 // Text for every entry lives in js/strings.js under "<kind>.<id>" keys.
 window.HN = {
-  DOMAIN: "dungthieuit98.github.io/hennha",
+  DOMAIN: "didatehong.com",
   PAYMENT_ENABLED: false,
-  NO_LIMIT: 4,
+  NO_LIMIT: 5,
 
-  TEMPLATES: [{ id: "t6" }, { id: "t1" }, { id: "t2" }, { id: "t5" }],
+  TEMPLATES: [{ id: "t6" }, { id: "t7" }],
 
   PLANS: [
-    { id: "trasua", ico: "🧋", group: "an" },
     { id: "cafe", ico: "☕", group: "an" },
-    { id: "lau", ico: "🍲", group: "an" },
-    { id: "nuong", ico: "🍖", group: "an" },
-    { id: "oc", ico: "🐚", group: "an" },
-    { id: "kem", ico: "🍦", group: "an" },
+    { id: "foodtour", ico: "🍢", group: "an" },
+    { id: "rooftop", ico: "🍸", group: "an" },
     { id: "pizza", ico: "🍕", group: "an" },
-    { id: "sushi", ico: "🍣", group: "an" },
-    { id: "garan", ico: "🍗", group: "an" },
-    { id: "an-gi-cung-duoc", ico: "🍽️", group: "an" },
-    { id: "xemphim", ico: "🎬", group: "choi" },
-    { id: "daopho", ico: "🚶", group: "choi" },
+    { id: "nuong", ico: "🍖", group: "an" },
+    { id: "nachos", ico: "🌮", group: "an" },
+    { id: "nhaviet", ico: "🍜", group: "an" },
+    { id: "nhanhat", ico: "🍣", group: "an" },
+    { id: "nhahan", ico: "🍲", group: "an" },
+    { id: "nhatrung", ico: "🥟", group: "an" },
+    { id: "nhanga", ico: "🪆", group: "an" },
+    { id: "ankhac", ico: "🍽️", group: "an" },
+    { id: "xemphim", ico: "🍿", group: "choi" },
+    { id: "boardgame", ico: "🎲", group: "choi" },
+    { id: "dapvit", ico: "🦢", group: "choi" },
+    { id: "jump", ico: "🤸", group: "choi" },
+    { id: "baotang", ico: "🏛️", group: "choi" },
+    { id: "workshop", ico: "🎨", group: "choi" },
+    { id: "dapxe", ico: "🚲", group: "choi" },
+    { id: "xemxu", ico: "⚖️", group: "choi" },
+    { id: "daopho", ico: "👣", group: "choi" },
     { id: "karaoke", ico: "🎤", group: "choi" },
     { id: "photobooth", ico: "📸", group: "choi" },
-    { id: "workshop", ico: "🎨", group: "choi" },
-    { id: "chodem", ico: "🏮", group: "choi" },
-    { id: "concert", ico: "🎵", group: "choi" },
-    { id: "dapxe", ico: "🚲", group: "choi" },
+    { id: "concert", ico: "🎶", group: "choi" },
     { id: "sup", ico: "🏄", group: "choi" },
-    { id: "leonui", ico: "🧗", group: "choi" },
-    { id: "baotang", ico: "🏛️", group: "choi" },
-    { id: "di-dau-cung-duoc", ico: "✨", group: "choi" },
+    { id: "choikhac", ico: "✨", group: "choi" },
   ],
 
   SENDER_STEPS: [
@@ -47,9 +51,7 @@ window.HN = {
   // price in whole VND; pill is a strings key suffix when the plan has a badge
   PRICING: [
     { id: "free", price: 0, pill: true },
-    { id: "one", price: 29000 },
-    { id: "three", price: 39000, pill: true },
   ],
 
-  SOURCES: ["social", "google", "invite", "friend", "other"],
+  SOURCES: ["social", "google", "ai", "friend", "other"],
 };

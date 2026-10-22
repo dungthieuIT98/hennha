@@ -212,7 +212,7 @@
     action: "TEMPLATE", text: title, dates: localStamp(start) + "/" + localStamp(end), details, ctz: "Asia/Ho_Chi_Minh",
   });
   HN.icsText = (title, details, { start, end }) => [
-    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//hennha//vi", "BEGIN:VEVENT",
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//didatehong//vi", "BEGIN:VEVENT",
     "UID:" + HN.randomCode(12) + "@" + HN.DOMAIN, "DTSTAMP:" + utcStamp(new Date()), "DTSTART:" + utcStamp(start), "DTEND:" + utcStamp(end),
     "SUMMARY:" + icsEscape(title), "DESCRIPTION:" + icsEscape(details), "END:VEVENT", "END:VCALENDAR",
   ].join("\r\n");

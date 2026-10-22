@@ -225,7 +225,8 @@
     }
 
     g.textAlign = "center"; g.fillStyle = "rgba(255,255,255,.9)"; g.font = "800 40px " + DISPLAY;
-    g.fillText(HN.t("tk.madeAt", { domain: HN.DOMAIN }), W / 2, H - 150);
+    // đặt cao hơn đáy ảnh: khi đăng story, thanh trả lời của Instagram/Facebook che khoảng 10% phía dưới
+    g.fillText(HN.t("tk.madeAt", { domain: HN.DOMAIN }), W / 2, H - 250);
     return c.toDataURL("image/png");
   };
 })();

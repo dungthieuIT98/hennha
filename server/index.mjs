@@ -1,4 +1,4 @@
-// Di date hong server: serves the static site, handles Google sign-in, keeps accounts in SQLite.
+// DiDateHong server: serves the static site, handles Google sign-in, keeps accounts in SQLite.
 // Usage: node --env-file=.env server/index.mjs   (Node 22.13+, no dependencies)
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -229,5 +229,5 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(cfg.port, cfg.host, () => console.log(`Di date hong at ${cfg.origin} (listening on ${cfg.host}:${cfg.port})`));
+server.listen(cfg.port, cfg.host, () => console.log(`DiDateHong at ${cfg.origin} (listening on ${cfg.host}:${cfg.port})`));
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => { server.close(); db.close(); process.exit(0); });

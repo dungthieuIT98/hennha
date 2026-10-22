@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#07060f">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<title>Di date hong · Thiệp mời hẹn hò</title>
+<title>DiDateHong · Thiệp mời hẹn hò</title>
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="css/app.css">
 </head>
@@ -20,7 +20,7 @@
 <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
 
 <header class="topbar" id="topbar">
-  <a class="brand" href="#/"><span class="brand-orb" aria-hidden="true"></span><span>Di date hong</span></a>
+  <a class="brand" href="#/"><span class="brand-orb" aria-hidden="true"></span><span>DiDateHong</span></a>
   <nav class="top-nav" data-i18n-attr="aria-label:nav.label">
     <a class="pill-link" href="#/q"><span data-i18n="nav.mine"></span> <b id="myCount">0</b></a>
     <!-- <a class="link hide-sm" href="#/login" data-i18n="nav.login"></a> -->
@@ -57,13 +57,13 @@
         <p class="love-hint" data-i18n="recv.hint"></p>
       </div>
       <div class="demo-stage" id="dQ" hidden>
-        <p class="runaway" id="dRun" hidden data-i18n="ask.runaway"></p>
         <div class="lottie q-hearts" data-lottie="hearts" data-loop="1"></div>
-        <div class="q-wrap"><h3 class="q" data-i18n="home.demoQ"></h3><p class="q-tease" data-i18n="home.demoTease"></p></div>
+        <div class="q-wrap"><h3 class="q" data-i18n="home.demoQ"></h3></div>
         <div class="btns">
-          <button class="btn btn-lg" id="dYes" type="button">YES</button>
+          <button class="btn btn-lg" id="dYes" type="button" data-i18n="ask.yes"></button>
           <button class="btn btn-ghost btn-lg" id="dNo" type="button" data-i18n="ask.no"></button>
         </div>
+        <div class="beg-slot"><p class="beg" id="dRun" hidden><span class="beg-ico" aria-hidden="true">🥺</span><span data-i18n="ask.runaway"></span></p></div>
       </div>
       <div class="demo-stage" id="dDone" hidden>
         <div class="lottie done-hands" data-lottie="holdHands" data-loop="1"></div>
@@ -88,21 +88,24 @@
       <li><span class="jdot" aria-hidden="true">💌</span><b data-i18n="home.j1"></b></li>
       <li><span class="jdot" aria-hidden="true">🗓️</span><b data-i18n="home.j2"></b></li>
       <li><span class="jdot" aria-hidden="true">🧋</span><b data-i18n="home.j3"></b></li>
-      <li class="end"><span class="jdot" aria-hidden="true">🎟️<i class="jpin">📍</i></span><b data-i18n="home.j4"></b></li>
+      <li class="end"><span class="jdot" aria-hidden="true"><span class="lottie jdot-lottie" data-lottie="couple" data-loop="1"></span><i class="jpin">📍</i></span><b data-i18n="home.j4"></b></li>
     </ol>
   </div>
 </section>
 
 <section class="section wrap ticket-sec">
   <div class="ticket-copy" data-reveal>
-    <span class="eyebrow" data-i18n="final"></span>
     <h2><span data-i18n="home.tkH2a"></span><span class="grad-text" data-i18n="home.tkH2b"></span></h2>
-    <p class="tk-line" data-i18n="home.tkLine"></p>
   </div>
-  <div class="ticket-host pocket" id="homeTicket">
-    <div class="tk-feed"></div>
-    <span class="pocket-back" aria-hidden="true"></span>
-    <span class="pocket-front" aria-hidden="true"></span>
+  <div class="story" id="homeTicket" data-reveal>
+    <div class="story-phone">
+      <img class="story-img" alt="" data-i18n-attr="alt:home.storyAlt">
+      <div class="story-top" aria-hidden="true">
+        <div class="story-bar"><span><i></i></span><span></span><span></span></div>
+        <div class="story-user"><span class="story-ava">T</span><b>thao_bong</b><span class="story-time" data-i18n="home.storyTime"></span></div>
+      </div>
+      <div class="story-bottom" aria-hidden="true"><span class="story-input" data-i18n="home.storyReply"></span><span class="story-heart">♡</span><span class="story-send">➤</span></div>
+    </div>
   </div>
 </section>
 
@@ -118,7 +121,7 @@
 </section>
 
 <section class="section wrap fb-sec">
-  <div class="fbx-host glass glow-border" id="homeFb" data-reveal></div>
+  <div class="fbx-host" id="homeFb" data-reveal></div>
 </section>
 
 <footer class="footer wrap">
@@ -206,9 +209,7 @@
       <div class="cstep" data-step="6">
         <h2 data-i18n="c6.h2"></h2>
         <p class="sub" data-i18n="c6.sub"></p>
-        <div class="choices" id="pricing"></div>
         <div class="checks">
-          <label class="check"><input type="checkbox" id="age"> <span data-i18n="c6.age"></span></label>
           <label class="check"><input type="checkbox" id="terms"> <span><span data-i18n="c6.agree"></span><a href="#/terms" target="_blank" rel="noopener" data-i18n="foot.terms"></a><span data-i18n="c6.and"></span><a href="#/privacy" target="_blank" rel="noopener" data-i18n="foot.policy"></a></span></label>
         </div>
         <p class="hint" id="hCreate" data-i18n="c6.hint"></p>
@@ -228,7 +229,8 @@
           <p class="hint" id="hShare" aria-live="polite"></p>
         </div>
         <button class="btn btn-block btn-lg" id="shareBtn" type="button" data-i18n="c7.share"></button>
-        <div class="fb glass-inner" id="fb"></div>
+        <div class="fb glass-inner" id="fb">
+        </div>
         <div class="nav"><a class="btn btn-ghost" href="#/q" data-i18n="c7.manage"></a><button class="btn btn-ghost" id="newBtn" type="button" data-i18n="c7.new"></button></div>
       </div>
 
@@ -262,10 +264,10 @@
       <h1 class="ask-title" id="askTitle"></h1>
       <p class="sub" data-i18n="recv.oneAnswer"></p>
       <div class="ask-buttons" id="askButtons">
-        <button class="btn btn-lg" id="yesBtn" type="button">YES</button>
+        <button class="btn btn-lg" id="yesBtn" type="button" data-i18n="ask.yes"></button>
         <button class="btn btn-ghost btn-lg" id="noBtn" type="button" data-i18n="ask.no"></button>
       </div>
-      <p class="runaway" id="runawayMsg" hidden data-i18n="ask.runaway"></p>
+      <p class="beg" id="runawayMsg" hidden><span class="beg-ico" aria-hidden="true">🥺</span><span data-i18n="ask.runaway"></span></p>
     </div>
 
     <div class="rstep" data-step="3">
@@ -389,7 +391,6 @@
 <template id="tpl-q">
 <section class="manage wrap">
   <div class="q-head">
-    <span class="eyebrow" data-i18n="q.eyebrow"></span>
     <h2 data-i18n="nav.mine"></h2>
     <p class="sub" data-i18n="q.sub"></p>
   </div>
@@ -473,6 +474,7 @@
 <script src="js/ui.js"></script>
 <script src="js/art.js"></script>
 <script src="js/feedback.js"></script>
+<script src="js/runaway.js"></script>
 <script src="js/screens/home.js"></script>
 <script src="js/screens/create.js"></script>
 <script src="js/screens/create-preview.js"></script>

@@ -36,7 +36,7 @@
         envTw = HN.loop(gsap.to(env, { y: -6, duration: 1.8, yoyo: true, repeat: -1, ease: "sine.inOut" }));
       } else if (k === "msg") {
         const card = el("div", "lp-card"), btns = el("div", "lp-btns");
-        const yes = el("span", "lp-yes", "YES"), no = el("button", "lp-no", HN.t("ask.no"));
+        const yes = el("span", "lp-yes", HN.t("ask.yes")), no = el("button", "lp-no", HN.t("ask.no"));
         no.type = "button";
         no.tabIndex = -1;
         btns.append(yes, no);
@@ -49,7 +49,7 @@
         stage.append(card);
       } else stage.append(el("div", "lp-ticket"));
     }
-    // nút Không né giống thiệp mẫu ở trang chủ nhưng chỉ chạy trong khung thiệp nhỏ: đổi chữ, YES to dần (tối đa 1.4 lần)
+    // nút Không né giống thiệp mẫu ở trang chủ nhưng chỉ chạy trong khung thiệp nhỏ: đổi chữ, nhỏ dần; nút Đồng ý giữ nguyên cỡ
     function dodgeInCard(card, yes, no) {
       let n = 0, last = 0, floating = false;
       const hit = (a, b, g) => !(a.x + a.w + g < b.x || b.x + b.w + g < a.x || a.y + a.h + g < b.y || b.y + b.h + g < a.y);
@@ -63,25 +63,26 @@
           const r = no.getBoundingClientRect();
           card.append(no);
           no.classList.add("floating");
-          gsap.set(no, { x: r.left - c.left, y: r.top - c.top });
+          gsap.set(no, { x: r.left - c.left, y: r.top - c.top, transformOrigin: "0 0" });
           floating = true;
         }
         n++;
         const texts = HN.t("no.texts");
         no.textContent = texts[n % texts.length];
-        gsap.to(yes, { scale: Math.min(1 + 0.08 * n, 1.4), duration: 0.35, ease: "back.out(2.5)" });
+        const s = Math.max(1 - 0.1 * n, 0.6);
         const rel = (node) => { const r = node.getBoundingClientRect(); return { x: r.left - c.left, y: r.top - c.top, w: r.width, h: r.height }; };
         const yb = rel(yes), mb = rel($(".lp-msg", card));
-        const nw = no.offsetWidth, nh = no.offsetHeight, pad = 10;
+        const nw = no.offsetWidth * s, nh = no.offsetHeight * s, pad = 10;
         const cx = gsap.getProperty(no, "x"), cy = gsap.getProperty(no, "y");
         for (const strict of [true, false]) {
           for (let i = 0; i < 60; i++) {
             const b = { x: pad + Math.random() * Math.max(0, c.width - nw - 2 * pad), y: pad + Math.random() * Math.max(0, c.height - nh - 2 * pad), w: nw, h: nh };
             if (hit(b, yb, 12) || (strict && hit(b, mb, 4)) || Math.hypot(b.x - cx, b.y - cy) < 40) continue;
-            gsap.to(no, { x: b.x, y: b.y, rotation: gsap.utils.random(-12, 12), duration: 0.32, ease: "back.out(2)" });
+            gsap.to(no, { x: b.x, y: b.y, scale: s, rotation: gsap.utils.random(-12, 12), duration: 0.32, ease: "back.out(2)" });
             return;
           }
         }
+        gsap.to(no, { scale: s, duration: 0.32, ease: "back.out(2)" });
       });
     }
     function fill(k, d) {
