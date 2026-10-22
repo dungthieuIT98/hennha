@@ -7,12 +7,12 @@ const SMALL = 11;
 
 // Pine creation order per bar. k = label offset as a share of the bar's high-low range.
 const TFS = [
-  { tf: '1m', show: 'showM1', key: 'm1', k: 0.05, size: TINY },
-  { tf: '5m', show: 'showM5', key: 'm5', k: 0.1, size: TINY },
-  { tf: '15m', show: 'showM15', key: 'm15', k: 0.15, size: SMALL },
-  { tf: '1h', show: 'showH1', key: 'h1', k: 0.25, size: SMALL },
-  { tf: '4h', show: 'showH4', key: 'h4', k: 0.35, size: SMALL },
-  { tf: '1d', show: 'showD1', key: 'd1', k: 0.45, size: SMALL }
+  { tf: '1m', mins: 1, show: 'showM1', key: 'm1', k: 0.05, size: TINY },
+  { tf: '5m', mins: 5, show: 'showM5', key: 'm5', k: 0.1, size: TINY },
+  { tf: '15m', mins: 15, show: 'showM15', key: 'm15', k: 0.15, size: SMALL },
+  { tf: '1h', mins: 60, show: 'showH1', key: 'h1', k: 0.25, size: SMALL },
+  { tf: '4h', mins: 240, show: 'showH4', key: 'h4', k: 0.35, size: SMALL },
+  { tf: '1d', mins: 1440, show: 'showD1', key: 'd1', k: 0.45, size: SMALL }
 ];
 
 const DEFAULT_COLORS = {
@@ -62,11 +62,12 @@ return {
     const rsiLen = inputs.rsiLen ?? 14;
     const n = dataList.length;
     const color = (id) => inputs[id] || DEFAULT_COLORS[id];
+    const chartMins = bv.detectBarMs(dataList) / 60000;
 
-    // Hidden timeframes are not requested, which also leaves the intrabar budget to the shown ones.
+    // Only timeframes above the chart's (docs' HTF rule); hidden or lower ones are never requested.
     const active = [];
     for (const t of TFS) {
-      if (!(inputs[t.show] ?? true)) continue;
+      if (!(inputs[t.show] ?? true) || !(t.mins > chartMins)) continue;
       const rsi = bv.security(
         { symbol: '', timeframe: t.tf, gaps: false, lookahead: false },
         (bars) => rsiOf(bars.map((b) => b.close), rsiLen)

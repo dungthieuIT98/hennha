@@ -1,5 +1,5 @@
 // Z-Score Predictive Zones [AlgoPoint] — the price-band part (force_overlay) of zscore_predict.pine.
-// Editor Settings: Overlay on (main chart), Precision: the symbol's.
+// Editor Settings: Overlay on (main chart), Precision = the symbol's price decimals (2 for BTCUSDT, 5 for EURUSD).
 // Keep Z-Score Length / Smoothing / Lookback Depth / Thershold the same as in zscore_predict_osc.
 
 // Pine ta.sma + ta.stdev (population), sliding Welford so large prices do not lose precision.
