@@ -1,0 +1,750 @@
+//@version=5
+indicator("RSI EMA/WMA Method 1 MTF + RT Labels", shorttitle="RSI EMA/WMA MTF+RT", overlay=false, max_labels_count=500)
+
+// === INPUTS ===
+
+src       = input(close, title="Source")
+rsiLen    = input.int(14, title="RSI Length", minval=1)
+emaRsiLen = input.int(9, title="EMA Length")
+wmaRsiLen = input.int(21, title="WMA Length")
+midLine   = input.int(50, title="Middle Line")
+
+autoHtf   = input.bool(true, title="Auto-detect HTF", group="MTF Filter")
+manualHtf = input.timeframe("D", title="Manual HTF (Auto off)", group="MTF Filter")
+
+htfWmaLen = input.int(
+     21,
+     title="HTF WMA Length",
+     minval=1,
+     group="MTF Filter",
+     tooltip="Độ dài WMA tính trên RSI khung cha."
+     )
+
+htfSlope = input.int(
+     2,
+     title="HTF WMA Slope Bars",
+     minval=1,
+     group="MTF Filter",
+     tooltip="So sánh HTF WMA hiện tại với N bar trước."
+     )
+
+showHtf  = input.bool(true, title="Show HTF WMA", group="MTF Filter")
+showInfo = input.bool(true, title="Show Info Box", group="MTF Filter")
+
+useChop = input.bool(
+     true,
+     title="Sideway Filter (CI)",
+     group="Sideway Filter",
+     tooltip="Chỉ cho signal fire khi Choppiness Index < threshold"
+     )
+
+ciLen = input.int(
+     14,
+     title="Choppiness Length",
+     minval=2,
+     group="Sideway Filter"
+     )
+
+ciThr = input.float(
+     50.0,
+     title="Choppiness Threshold (<)",
+     minval=0,
+     step=0.5,
+     group="Sideway Filter"
+     )
+
+// ====================================================
+// RT MTF LABELS
+// ====================================================
+
+showM1  = input.bool(true, title="Show M1 Label", group="RT MTF Labels")
+showM5  = input.bool(true, title="Show M5 Label", group="RT MTF Labels")
+showM15 = input.bool(true, title="Show 15M Label", group="RT MTF Labels")
+showH1  = input.bool(true, title="Show H1 Label", group="RT MTF Labels")
+showH4  = input.bool(true, title="Show H4 Label", group="RT MTF Labels")
+showD1  = input.bool(true, title="Show D1 Label", group="RT MTF Labels")
+
+// ====================================================
+// MÀU LABEL M1
+// ====================================================
+
+color_m1_light  = input.color(#90caf9, title="M1: Quá Mua/Bán Vừa (70-80 / 25-30)", group="RT MTF Labels")
+color_m1_dark   = input.color(#42a5f5, title="M1: Quá Mua/Bán Mạnh (80-90 / 20-25)", group="RT MTF Labels")
+color_m1_darker = input.color(#1565c0, title="M1: Quá Mua/Bán Cực Mạnh (>90 / <20)", group="RT MTF Labels")
+
+// ====================================================
+// MÀU LABEL M5
+// ====================================================
+
+color_m5_light  = input.color(#81d4fa, title="M5: Quá Mua/Bán Vừa (70-80 / 25-30)", group="RT MTF Labels")
+color_m5_dark   = input.color(#29b6f6, title="M5: Quá Mua/Bán Mạnh (80-90 / 20-25)", group="RT MTF Labels")
+color_m5_darker = input.color(#0277bd, title="M5: Quá Mua/Bán Cực Mạnh (>90 / <20)", group="RT MTF Labels")
+
+// ====================================================
+// MÀU LABEL 15M
+// ====================================================
+
+color_m15_light  = input.color(#64b5f6, title="15M: Quá Mua/Bán Vừa (70-80 / 25-30)", group="RT MTF Labels")
+color_m15_dark   = input.color(#1e88e5, title="15M: Quá Mua/Bán Mạnh (80-90 / 20-25)", group="RT MTF Labels")
+color_m15_darker = input.color(#0d47a1, title="15M: Quá Mua/Bán Cực Mạnh (>90 / <20)", group="RT MTF Labels")
+
+// ====================================================
+// MÀU LABEL H1
+// ====================================================
+
+color_h1_light  = input.color(#69f0ae, title="H1: Quá Mua/Bán Vừa (70-80 / 25-30)", group="RT MTF Labels")
+color_h1_dark   = input.color(#00c853, title="H1: Quá Mua/Bán Mạnh (80-90 / 20-25)", group="RT MTF Labels")
+color_h1_darker = input.color(#004d40, title="H1: Quá Mua/Bán Cực Mạnh (>90 / <20)", group="RT MTF Labels")
+
+// ====================================================
+// MÀU LABEL H4
+// ====================================================
+
+color_h4_light  = input.color(#ffb74d, title="H4: Quá Mua/Bán Vừa (70-80 / 25-30)", group="RT MTF Labels")
+color_h4_dark   = input.color(#f57c00, title="H4: Quá Mua/Bán Mạnh (80-90 / 20-25)", group="RT MTF Labels")
+color_h4_darker = input.color(#bf360c, title="H4: Quá Mua/Bán Cực Mạnh (>90 / <20)", group="RT MTF Labels")
+
+// ====================================================
+// MÀU LABEL D1
+// ====================================================
+
+color_d1_light  = input.color(#ba68c8, title="D1: Quá Mua/Bán Vừa (70-80 / 25-30)", group="RT MTF Labels")
+color_d1_dark   = input.color(#8e24aa, title="D1: Quá Mua/Bán Mạnh (80-90 / 20-25)", group="RT MTF Labels")
+color_d1_darker = input.color(#4a148c, title="D1: Quá Mua/Bán Cực Mạnh (>90 / <20)", group="RT MTF Labels")
+
+// ====================================================
+// AUTO HTF MAPPING
+// ====================================================
+
+autoHtfTF() =>
+    m = timeframe.in_seconds(timeframe.period) / 60
+    out = "M"
+
+    if m <= 1
+        out := "5"
+    else if m <= 5
+        out := "15"
+    else if m <= 15
+        out := "60"
+    else if m <= 60
+        out := "240"
+    else if m <= 240
+        out := "D"
+    else if m <= 1440
+        out := "W"
+
+    out
+
+htfTF = autoHtf ? autoHtfTF() : manualHtf
+
+// ====================================================
+// INDICATORS - CURRENT TF
+// ====================================================
+
+up = ta.rma(math.max(ta.change(src), 0), rsiLen)
+down = ta.rma(-math.min(ta.change(src), 0), rsiLen)
+
+rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+
+emaRsi = ta.ema(rsi, emaRsiLen)
+wmaRsi = ta.wma(rsi, wmaRsiLen)
+
+// ====================================================
+// HTF WMA
+// ====================================================
+
+htfCalc() =>
+    rsiH = ta.rsi(src, rsiLen)
+    wmaH = ta.wma(rsiH, htfWmaLen)
+    [wmaH[1], wmaH[htfSlope + 1]]
+
+[htfWma, htfWmaPrev] = request.security(
+     syminfo.tickerid,
+     htfTF,
+     htfCalc(),
+     gaps=barmerge.gaps_off,
+     lookahead=barmerge.lookahead_on
+     )
+
+// Compare completed HTF bars so the bias is consistent during replay.
+
+htfBullish = not na(htfWma) and not na(htfWmaPrev) and htfWma > htfWmaPrev
+htfBearish = not na(htfWma) and not na(htfWmaPrev) and htfWma < htfWmaPrev
+
+// ====================================================
+// SIDEWAY FILTER - CHOPPINESS INDEX
+// ====================================================
+
+ciAtrSum = math.sum(ta.atr(1), ciLen)
+ciRange = ta.highest(high, ciLen) - ta.lowest(low, ciLen)
+
+chop = ciRange > 0 ?
+     100 * math.log10(ciAtrSum / ciRange) / math.log10(ciLen) :
+     na
+
+trending = chop < ciThr
+notChoppy = not useChop or trending
+
+// ====================================================
+// SIGNALS
+// ====================================================
+
+bullCandle = close > open
+bearCandle = close < open
+
+risingMom = rsi > rsi[1] and emaRsi > emaRsi[1]
+fallingMom = rsi < rsi[1] and emaRsi < emaRsi[1]
+
+// ====================================================
+// SELL
+// ====================================================
+
+sellBase =
+     rsi < emaRsi and
+     rsi < htfWma and
+     fallingMom and
+     bearCandle and
+     htfBearish and
+     notChoppy
+
+sellSignal =
+     sellBase and
+     rsi < rsi[1] and
+     not sellBase[1]
+
+// ====================================================
+// BEARISH CONTEXT
+// ====================================================
+
+var bool bearishCtx = false
+
+if sellSignal and rsi[1] > 60 and emaRsi[1] > 60 and htfWma[1] > 60
+    bearishCtx := true
+
+if rsi < midLine - 10
+    bearishCtx := false
+
+// ====================================================
+// BUY
+// ====================================================
+
+buyBase =
+     rsi > emaRsi and
+     rsi > htfWma and
+     risingMom and
+     bullCandle and
+     not bearishCtx and
+     htfBullish and
+     notChoppy
+
+buySignal =
+     buyBase and
+     rsi > rsi[1] and
+     not buyBase[1]
+
+// ====================================================
+// SIGNALS ON PRICE CHART
+// ====================================================
+
+
+// ====================================================
+// PLOTS - RSI OSCILLATOR
+// ====================================================
+
+plot(0, display=display.none, editable=false, title="_min")
+plot(100, display=display.none, editable=false, title="_max")
+
+plot(
+     rsi,
+     color=color.new(color.yellow, 0),
+     linewidth=3,
+     title="RSI"
+     )
+
+plot(
+     wmaRsi,
+     color=color.new(#e53935, 0),
+     linewidth=3,
+     title="WMA"
+     )
+
+plot(
+     emaRsi,
+     color=color.new(#00c853, 0),
+     linewidth=2,
+     title="EMA"
+     )
+
+plot(
+     showHtf ? htfWma : na,
+     color=color.new(color.white, 20),
+     linewidth=4,
+     title="HTF WMA"
+     )
+
+hline(
+     70,
+     color=#757575,
+     linestyle=hline.style_dashed,
+     linewidth=2,
+     title="OB Line"
+     )
+
+hline(
+     30,
+     color=#9e9e9e,
+     linestyle=hline.style_dashed,
+     linewidth=2,
+     title="OS Line"
+     )
+
+ref = plot(
+     midLine,
+     editable=true,
+     title="Middle Line"
+     )
+
+obsd = plot(
+     rsi > midLine ? rsi : midLine,
+     color=color.new(color.red, 90),
+     editable=false,
+     title="Above Mid",
+     display=display.none
+     )
+
+obbt = plot(
+     rsi > midLine ? midLine : rsi,
+     color=color.new(color.blue, 90),
+     editable=false,
+     title="Below Mid",
+     display=display.none
+     )
+
+fill(
+     obsd,
+     ref,
+     color=color.new(color.red, 50),
+     title="OB Fill"
+     )
+
+fill(
+     obbt,
+     ref,
+     color=color.new(color.blue, 50),
+     title="OS Fill"
+     )
+
+// ====================================================
+// INFO BOX
+// ====================================================
+
+var table htfTbl = table.new(
+     position.top_right,
+     2,
+     4,
+     border_width=1
+     )
+
+htfState =
+     htfBullish ? "BULL" :
+     htfBearish ? "BEAR" :
+     "NEUTRAL"
+
+htfStateColor =
+     htfBullish ? color.green :
+     htfBearish ? color.red :
+     color.gray
+
+chopState = trending ? "TREND" : "CHOP"
+
+chopStateColor =
+     trending ? color.green :
+     color.orange
+
+if showInfo and barstate.islast
+
+    table.cell(
+         htfTbl,
+         0,
+         0,
+         "HTF",
+         text_color=color.white,
+         bgcolor=color.new(color.black, 70)
+         )
+
+    table.cell(
+         htfTbl,
+         1,
+         0,
+         htfTF,
+         text_color=color.white,
+         bgcolor=color.new(color.black, 70)
+         )
+
+    table.cell(
+         htfTbl,
+         0,
+         1,
+         "Bias",
+         text_color=color.white,
+         bgcolor=color.new(color.black, 70)
+         )
+
+    table.cell(
+         htfTbl,
+         1,
+         1,
+         htfState,
+         text_color=htfStateColor,
+         bgcolor=color.new(color.black, 70)
+         )
+
+    table.cell(
+         htfTbl,
+         0,
+         2,
+         "CI",
+         text_color=color.white,
+         bgcolor=color.new(color.black, 70)
+         )
+
+    table.cell(
+         htfTbl,
+         1,
+         2,
+         str.tostring(chop, "#.0"),
+         text_color=color.white,
+         bgcolor=color.new(color.black, 70)
+         )
+
+    table.cell(
+         htfTbl,
+         0,
+         3,
+         "Mkt",
+         text_color=color.white,
+         bgcolor=color.new(color.black, 70)
+         )
+
+    table.cell(
+         htfTbl,
+         1,
+         3,
+         chopState,
+         text_color=chopStateColor,
+         bgcolor=color.new(color.black, 70)
+         )
+
+// ====================================================
+// RSI MTF REAL-TIME LABELS
+// M1 / M5 / 15M / 1H / 4H / D1
+// ====================================================
+
+// ====================================================
+// PHÂN LOẠI 3 ZONE MÀU RSI
+// ====================================================
+
+//  3: > 90     (Cực mạnh)
+//  2: 80 - 90  (Mạnh)
+//  1: 70 - 80  (Vừa)
+// -1: 25 - 30  (Vừa)
+// -2: 20 - 25  (Mạnh)
+// -3: < 20     (Cực mạnh)
+//  0: Vùng bình thường (30 - 70)
+
+getZone(float rsiVal) =>
+    rsiVal > 90 ? 3 :
+     rsiVal >= 80 ? 2 :
+     rsiVal >= 70 ? 1 :
+     rsiVal <= 20 ? -3 :
+     rsiVal <= 25 ? -2 :
+     rsiVal <= 30 ? -1 :
+     0
+
+// ====================================================
+// MÀU LABEL M1
+// ====================================================
+
+getM1Color(int zoneVal) =>
+    switch
+        zoneVal == 3 or zoneVal == -3 => color_m1_darker
+        zoneVal == 2 or zoneVal == -2 => color_m1_dark
+        zoneVal == 1 or zoneVal == -1 => color_m1_light
+        => na
+
+// ====================================================
+// MÀU LABEL M5
+// ====================================================
+
+getM5Color(int zoneVal) =>
+    switch
+        zoneVal == 3 or zoneVal == -3 => color_m5_darker
+        zoneVal == 2 or zoneVal == -2 => color_m5_dark
+        zoneVal == 1 or zoneVal == -1 => color_m5_light
+        => na
+
+// ====================================================
+// MÀU LABEL 15M
+// ====================================================
+
+getM15Color(int zoneVal) =>
+    switch
+        zoneVal == 3 or zoneVal == -3 => color_m15_darker
+        zoneVal == 2 or zoneVal == -2 => color_m15_dark
+        zoneVal == 1 or zoneVal == -1 => color_m15_light
+        => na
+
+// ====================================================
+// MÀU LABEL H1
+// ====================================================
+
+getH1Color(int zoneVal) =>
+    switch
+        zoneVal == 3 or zoneVal == -3 => color_h1_darker
+        zoneVal == 2 or zoneVal == -2 => color_h1_dark
+        zoneVal == 1 or zoneVal == -1 => color_h1_light
+        => na
+
+// ====================================================
+// MÀU LABEL H4
+// ====================================================
+
+getH4Color(int zoneVal) =>
+    switch
+        zoneVal == 3 or zoneVal == -3 => color_h4_darker
+        zoneVal == 2 or zoneVal == -2 => color_h4_dark
+        zoneVal == 1 or zoneVal == -1 => color_h4_light
+        => na
+
+// ====================================================
+// MÀU LABEL D1
+// ====================================================
+
+getD1Color(int zoneVal) =>
+    switch
+        zoneVal == 3 or zoneVal == -3 => color_d1_darker
+        zoneVal == 2 or zoneVal == -2 => color_d1_dark
+        zoneVal == 1 or zoneVal == -1 => color_d1_light
+        => na
+
+// ====================================================
+// RSI M1 REAL-TIME
+// ====================================================
+
+rsiM1 = request.security(
+     syminfo.tickerid,
+     "1",
+     ta.rsi(close, rsiLen),
+     gaps=barmerge.gaps_off,
+     lookahead=barmerge.lookahead_off
+     )
+
+zoneM1 = getZone(rsiM1)
+
+// ====================================================
+// RSI M5 REAL-TIME
+// ====================================================
+
+rsiM5 = request.security(
+     syminfo.tickerid,
+     "5",
+     ta.rsi(close, rsiLen),
+     gaps=barmerge.gaps_off,
+     lookahead=barmerge.lookahead_off
+     )
+
+zoneM5 = getZone(rsiM5)
+
+// ====================================================
+// RSI 15M REAL-TIME
+// ====================================================
+
+rsiM15 = request.security(
+     syminfo.tickerid,
+     "15",
+     ta.rsi(close, rsiLen),
+     gaps=barmerge.gaps_off,
+     lookahead=barmerge.lookahead_off
+     )
+
+zoneM15 = getZone(rsiM15)
+
+// ====================================================
+// RSI H1 REAL-TIME
+// ====================================================
+
+rsiH1 = request.security(
+     syminfo.tickerid,
+     "60",
+     ta.rsi(close, rsiLen),
+     gaps=barmerge.gaps_off,
+     lookahead=barmerge.lookahead_off
+     )
+
+zoneH1 = getZone(rsiH1)
+
+// ====================================================
+// RSI H4 REAL-TIME
+// ====================================================
+
+rsiH4 = request.security(
+     syminfo.tickerid,
+     "240",
+     ta.rsi(close, rsiLen),
+     gaps=barmerge.gaps_off,
+     lookahead=barmerge.lookahead_off
+     )
+
+zoneH4 = getZone(rsiH4)
+
+// ====================================================
+// RSI D1 REAL-TIME
+// ====================================================
+
+rsiD1 = request.security(
+     syminfo.tickerid,
+     "D",
+     ta.rsi(close, rsiLen),
+     gaps=barmerge.gaps_off,
+     lookahead=barmerge.lookahead_off
+     )
+
+zoneD1 = getZone(rsiD1)
+
+// ====================================================
+// M1 LABEL
+// ====================================================
+
+if showM1 and (rsiM1 >= 70 or rsiM1 <= 30)
+
+    isOverBoughtM1 = rsiM1 >= 70
+
+    label.new(
+         x=bar_index,
+         y=isOverBoughtM1 ?
+             high + (high - low) * 0.05 :
+             low - (high - low) * 0.05,
+         text=str.tostring(rsiM1, "#.##"),
+         style=isOverBoughtM1 ?
+             label.style_label_down :
+             label.style_label_up,
+         color=getM1Color(zoneM1),
+         textcolor=color.white,
+         size=size.tiny,
+         force_overlay=true
+         )
+
+// ====================================================
+// M5 LABEL
+// ====================================================
+
+if showM5 and (rsiM5 >= 70 or rsiM5 <= 30)
+
+    isOverBoughtM5 = rsiM5 >= 70
+
+    label.new(
+         x=bar_index,
+         y=isOverBoughtM5 ?
+             high + (high - low) * 0.10 :
+             low - (high - low) * 0.10,
+         text=str.tostring(rsiM5, "#.##"),
+         style=isOverBoughtM5 ?
+             label.style_label_down :
+             label.style_label_up,
+         color=getM5Color(zoneM5),
+         textcolor=color.white,
+         size=size.tiny,
+         force_overlay=true
+         )
+
+// ====================================================
+// 15M LABEL
+// ====================================================
+
+if showM15 and (rsiM15 >= 70 or rsiM15 <= 30)
+
+    isOverBoughtM15 = rsiM15 >= 70
+
+    label.new(
+         x=bar_index,
+         y=isOverBoughtM15 ?
+             high + (high - low) * 0.15 :
+             low - (high - low) * 0.15,
+         text=str.tostring(rsiM15, "#.##"),
+         style=isOverBoughtM15 ?
+             label.style_label_down :
+             label.style_label_up,
+         color=getM15Color(zoneM15),
+         textcolor=color.white,
+         size=size.small,
+         force_overlay=true
+         )
+
+// ====================================================
+// H1 LABEL
+// ====================================================
+
+if showH1 and (rsiH1 >= 70 or rsiH1 <= 30)
+
+    isOverBoughtH1 = rsiH1 >= 70
+
+    label.new(
+         x=bar_index,
+         y=isOverBoughtH1 ?
+             high + (high - low) * 0.25 :
+             low - (high - low) * 0.25,
+         text=str.tostring(rsiH1, "#.##"),
+         style=isOverBoughtH1 ?
+             label.style_label_down :
+             label.style_label_up,
+         color=getH1Color(zoneH1),
+         textcolor=color.white,
+         size=size.small,
+         force_overlay=true
+         )
+
+// ====================================================
+// H4 LABEL
+// ====================================================
+
+if showH4 and (rsiH4 >= 70 or rsiH4 <= 30)
+
+    isOverBoughtH4 = rsiH4 >= 70
+
+    label.new(
+         x=bar_index,
+         y=isOverBoughtH4 ?
+             high + (high - low) * 0.35 :
+             low - (high - low) * 0.35,
+         text=str.tostring(rsiH4, "#.##"),
+         style=isOverBoughtH4 ?
+             label.style_label_down :
+             label.style_label_up,
+         color=getH4Color(zoneH4),
+         textcolor=color.white,
+         size=size.small,
+         force_overlay=true
+         )
+
+// ====================================================
+// D1 LABEL
+// ====================================================
+
+if showD1 and (rsiD1 >= 70 or rsiD1 <= 30)
+
+    isOverBoughtD1 = rsiD1 >= 70
+
+    label.new(
+         x=bar_index,
+         y=isOverBoughtD1 ?
+             high + (high - low) * 0.45 :
+             low - (high - low) * 0.45,
+         text=str.tostring(rsiD1, "#.##"),
+         style=isOverBoughtD1 ?
+             label.style_label_down :
+             label.style_label_up,
+         color=getD1Color(zoneD1),
+         textcolor=color.white,
+         size=size.small,
+         force_overlay=true
+         )

@@ -1,0 +1,120 @@
+SOURCE-SPECIFIC RULES FOR PINESCRIPT:
+- Classify indicator(), strategy(), and library() declarations before converting. A library or incomplete source must be reported instead of guessed.
+- Map every input(), input.int(), input.float(), input.bool(), input.color(), input.string(), input.time(), and input.session() declaration 1:1, preserving its default.
+- Preserve Pine series semantics, na warmup behavior, var state, bar confirmation, plot visibility, offsets, sessions, and drawing lifetimes where the target runtime can express them.
+- Map request.security(sym, tf, expr, gaps, lookahead) to bv.security({ symbol, timeframe, gaps, lookahead }, (bars) => expr) and request.security_lower_tf(sym, tf, expr) to bv.securityLowerTf({ symbol, timeframe }, (bars) => expr). The expression is computed on the requested bars, exactly as Pine does. Keep gaps and lookahead as written; syminfo.tickerid and timeframe.period mean symbol '' and timeframe ''. Map input.symbol and input.timeframe to the symbol and timeframe input types.
+- Preserve full-height line.new(..., extend=extend.both) markers as full-height Canvas strokes. Preserve time_close countdowns as real time, not bar counts.
+- The attached source file is .pine.
+
+Convert the attached source bundle into a Custom Indicator for The Free Chart (powered by KlineCharts v10+ JavaScript Engine).
+
+I've attached two files:
+1. My source bundle (one or more source files)
+2. The Indicator Reference Document (.md file) — contains the full API specification and bv Drawing helpers
+
+First return a short compatibility report in plain text: classify the source, list what can be
+preserved, name every unsupported or approximated behavior, and list any blocking missing source or
+input. If a blocker exists, STOP after the report and request what is missing; output no fabricated
+code. Only when there is no blocker, output EXACTLY two fenced code blocks and no other fenced blocks:
+
+1. **Inputs tab** (JSON array):
+   - Convert every user-configurable source parameter into this JSON schema:
+     [
+       { "id": "len", "name": "Period Length", "type": "int", "defval": 14, "min": 1, "max": 500, "step": 1 },
+       { "id": "mult", "name": "Multiplier", "type": "float", "defval": 2.0, "min": 0.1, "max": 10.0, "step": 0.1 },
+       { "id": "showSignal", "name": "Show Signal", "type": "bool", "defval": true },
+       { "id": "bullColor", "name": "Bullish Color", "type": "color", "defval": "#089981", "tab": "style" },
+       { "id": "bearColor", "name": "Bearish Color", "type": "color", "defval": "#f23645", "tab": "style" },
+       { "id": "startTime", "name": "Start Time (UTC)", "type": "time", "defval": "07:00" },
+       { "id": "endTime", "name": "End Time (UTC)", "type": "time", "defval": "16:00" },
+       { "id": "session", "name": "Trading Session", "type": "session", "defval": "09:00-16:00" },
+       { "id": "maType", "name": "MA Type", "type": "select", "options": ["SMA", "EMA", "WMA", "RMA"], "defval": "EMA" }
+     ]
+   - RESERVED: do NOT add a "showPriceLabel" input, or any input that toggles the value tag on the price scale. The platform adds a "Price label" checkbox by itself to every indicator that declares at least one figure. ("showLabels" for text your own draw() paints on the canvas is a different thing and is still yours to declare.)
+
+2. **Script tab** (JavaScript):
+   - Pure modern JavaScript evaluated as a factory function receiving helper `bv`:
+     return {
+         // The indicator's name, Overlay switch (on = main chart, off = sub-pane) and precision are set in Editor Settings.
+         // name, shortName, precision, series, styles, minValue and maxValue returned here are IGNORED.
+         figures: [
+             { key: 'line1', type: 'line', title: 'Plot: ', styles: ({ indicator }) => ({ color: indicator.extendData?.inputs?.bullColor || '#089981' }) },
+             // For dynamic bar/circle colors (e.g. Squeeze Momentum, MACD histogram):
+             { 
+               key: 'val', 
+               type: 'bar', 
+               title: 'Hist: ', 
+               styles: ({ data, indicator }) => {
+                 const current = data?.current; // CRITICAL: NEVER use ({ bar }) as bar is undefined!
+                 const prev = data?.prev;
+                 const val = current?.val ?? 0;
+                 return { color: val > 0 ? '#00e676' : '#ff5252' };
+               }
+             }
+         ],
+         calc(dataList, indicator) {
+             // ALWAYS read user-configured parameters from indicator.extendData?.inputs with safe fallbacks:
+             const { len = 14, mult = 2.0, startTime = '07:00', endTime = '16:00' } = indicator.extendData?.inputs || {};
+             const startMin = typeof startTime === 'string' && startTime.includes(':') ? bv.parseClock(startTime, 420) : (Number(startTime) * 60);
+             // dataList is an array of bars: { timestamp, open, high, low, close, volume }
+             // Return array MUST have identical length to dataList! Return {} for warmup bars.
+             const res = new Array(dataList.length);
+             for (let i = 0; i < dataList.length; i++) {
+                 res[i] = { line1: calculatedValue, val: histValue };
+             }
+             return res;
+         },
+         // Optional: Direct Canvas 2D Drawing for boxes, lines, labels, killzones, SMC
+         draw(args) {
+             const { ctx, bounding, xAxis, yAxis, indicator } = args;
+             const inputs = indicator.extendData?.inputs || {};
+             // Use destination-over to draw under candles: ctx.globalCompositeOperation = 'destination-over'
+             // bv.box(args, { fromIndex, toIndex, top, bottom, color: inputs.boxColor || '#10b981', fillOpacity: 0.15, borderOpacity: 0.6, under: true, text })
+             // bv.line(args, { fromIndex, toIndex, price, color, width, opacity, dash: [4, 4] })  // or fromPrice + toPrice for a sloped ray
+             // bv.label(args, { index, price, text, color, background, align, baseline, size, offsetY })  // color is the TEXT colour, background the chip; there is no textColor. bv.text is the same without the chip
+             // Every bv drawing helper places by bar INDEX + PRICE, never pixels, and returns false instead of throwing on a bad spec — a wrong key leaves the chart blank with no error. Pixel-sized shapes go straight on ctx, positioned with bv.bounds / bv.xOfIndex / bv.yOfPrice / bv.halfBar(args, index) — pass the bar index so an edge meets that bar's own width (Volume candles pack quiet bars narrower).
+             return false; // keep declared figures; true would suppress every figure
+         }
+     };
+
+CRITICAL Engine Rules:
+- WHAT THE SCRIPT CONTROLS: Only figures, calc, draw and createTooltipDataSource are read from the returned object. The name, the Overlay switch (on = main chart, off = sub-pane) and precision come from the editor's Settings, so state them in your compatibility report ("Overlay: off (sub-pane), Precision: 2") instead of relying on name/shortName/precision/series/styles/minValue/maxValue, which are ignored. A sub-pane always auto-fits its values; to keep an oscillator's 30/70 guides in view, return them as constant figures.
+- POSITIVE OFFSET & FUTURE PROJECTIONS: KlineCharts figures only render from 0 to dataList.length - 1. If an indicator has positive offset / displacement > 0 (e.g. Ichimoku Cloud Span A/B/Kumo +26, Displaced MA, Target Projections), store raw values in indicator._state in calc() and use draw() with args.chart.getVisibleRange() realFrom/realTo and xAxis.convertToPixel(i) to render lines/polygons into future space past the live candle.
+- TIME / SESSION INPUTS: A single clock edge uses `"type": "time"` with `"HH:MM"`; a complete window uses `"type": "session"` with `"HH:MM-HH:MM"`. NEVER use `int` or `float` for times of day. In calc(), parse clock edges using `bv.parseClock(val, fallbackMinutes)`.
+- TIMEZONES & SESSIONS: Map Pine time functions 1:1 onto the bv helpers, which keep Pine's names and numbering: hour/minute/second/dayofweek/dayofmonth/month/year(time, tz) -> `bv.hour(t, tz)` etc. (Sunday = 1); timestamp(tz, y, m, d, h, mi, s) -> `bv.timestamp(tz, y, m, d, h, mi, s)`; time(tf, session, tz) -> `bv.time(t, session, tz)` (null outside, Pine's na); the session instance / time_tradingday -> `bv.session(t, session, tz)` returning { start, end, tradingDay } or null; syminfo.timezone -> `bv.syminfo().timezone`. With tz omitted they use the symbol's EXCHANGE timezone, exactly like Pine. tz is an IANA name or "UTC+7" / "GMT-03:30" with Pine's sign. Keep a source that is written in UTC in UTC by passing "UTC".
+- PERFORMANCE (the chart must not lag): calc() runs on the chart's main thread over EVERY bar on EVERY price update, even while hidden; draw() runs on every repaint; figure styles callbacks run per visible bar per repaint. Therefore:
+  * NEVER call Intl.DateTimeFormat / formatToParts / toLocaleString / toLocaleDateString / toLocaleTimeString inside a per-bar loop (creating the formatter once does NOT help; formatToParts is the cost). NEVER use local Date getters (getHours, getDay, getDate): they use the viewer's computer timezone. Use bv.hour / bv.tzParts / bv.time / bv.session with an explicit tz (getUTC* is fine for UTC).
+  * NO inner loop walking back over history at every bar (rolling sum, highest, lowest): use running totals and bv.ma; only short fixed lookbacks may be walked.
+  * NO find / filter / indexOf / includes / some, and NO unshift / shift / splice(0) on arrays that grow with history inside the bar loop. Keep the item being built in a variable; keep a short list of still-active items and remove each as it finishes (mitigated, expired, replaced).
+  * Parse inputs (split, regex, JSON.parse, bv.parseClock) ONCE before the loop. Do not build throwaway arrays (slice, spread, map/filter chains) per bar.
+  * Every loop is bounded by dataList.length or a fixed count; never a while whose exit depends on a value that can be NaN. A single loop of 10,000,000 passes, or 60 s of busy time, is stopped and the line goes blank.
+  * If only the last N sessions/structures are drawn, start the scan shortly before them (keeping warm-up bars) instead of walking the whole history.
+  * draw(): cull every shape with bv.visible(args) BEFORE converting coordinates; no calculation (no loops over dataList, no bv.ma, no sorting); ctx.save() + ctx.setLineDash([]) once at the start and ctx.restore() once at the end; one path + one stroke per colour; set ctx.font outside loops; no shadowBlur / ctx.filter.
+  * No console.log.
+- STATE: NEVER write to indicator.extendData (no `indicator.extendData = …`, no extra fields on it): it holds the user's saved settings (extendData.inputs); replacing it wipes them and changing it triggers recalculation. Per-bar values go in the array calc() returns; shapes for draw() go on your own field (indicator._yourName = { … }), computed in calc() and only read in draw(), keeping only what is drawn.
+- DROPDOWNS / ENUMS: For fixed sets of methods, types, or styles, use `"type": "select"` with at most 40 `"options"`. Never emit an invalid oversized enum schema.
+- SYMBOL / TIMEFRAME INPUTS: Pine input.symbol -> `"type": "symbol"` (defval '' = chart symbol, or 'BINANCE:ETHUSDT'); Pine input.timeframe and MQL ENUM_TIMEFRAMES inputs -> `"type": "timeframe"` (defval '' = chart timeframe, or '60' / '240' / '1D'). Pass both straight into bv.security({ symbol, timeframe }).
+- MANDATORY INPUTS CONVERSION & STRICT 1:1 DEFAULT MATCH: Every user-configurable source parameter (length, factor, threshold, color, session window, toggle) MUST be mapped to the JSON schema in the Inputs tab. CRITICAL: "defval" in the schema MUST EXACTLY MATCH the source default. Never invent different defaults, change default colors, or flip booleans.
+- OTHER TIMEFRAMES & SYMBOLS: Read them with `bv.security(spec, expression)` (Pine request.security) and `bv.securityLowerTf(spec, expression)` (Pine request.security_lower_tf), never by re-aggregating dataList. spec = { symbol, timeframe, gaps, lookahead, calcBarsCount }; symbol '' and timeframe '' mean the chart's own; symbol 'BINANCE:ETHUSDT', timeframe '4h' / '240' / '1D'. expression(bars) runs on the REQUESTED bars (oldest first) and returns one value per requested bar, e.g. (bars) => bv.ma(bars.map((b) => b.close), 20, 'EMA'). The result has one entry per chart bar, or is undefined while loading (the chart recalculates by itself): ALWAYS guard with `if (!v) return dataList.map(() => ({}));`. lookahead: false (default) never shows a historical bar a value it could not have seen live. A LOWER timeframe gives one intrabar per chart bar with bv.security (last; first with lookahead) or an ARRAY per chart bar with bv.securityLowerTf ([] where none). Limits: 40 symbol/timeframe pairs per script; 200,000 intrabars per script shared in call order; a lower timeframe must be 1s/1m/5m/15m/30m/1h/4h/1d/1w/1M.
+- HIGHER TIMEFRAME (HTF) DRAWING: Aggregate locally from dataList only to DRAW higher-timeframe candles, boxes or bias of the chart's own symbol. Detect the current chart interval from timestamp deltas. Ticks, Bid/Ask, terminal history and missing bars are unavailable; report them in the compatibility report.
+- CANVAS DASH LEAKAGE PREVENTION: At the start of draw(args), ALWAYS call ctx.save(); and ctx.setLineDash([]); immediately. KlineCharts grid lines leave dashed styles on ctx, which will inadvertently turn all solid candle wicks, borders, and levels into dotted lines unless reset.
+- COUNTDOWN TIMERS FOR HTF: When the source displays a higher-timeframe close countdown, calculate true remaining time in HH:MM:SS format (e.g. "(12:58:32)" or "(6D 12:58:32)"), NOT a bar count like "(8 bars)".
+- RESERVED INPUT IDS — NEVER DECLARE THESE: `showPriceLabel` is owned by the platform. Every indicator that declares at least one figure automatically receives a "Price label" checkbox (default ON) that toggles the value tag on the PRICE SCALE (the chip on the right-hand axis). That tag is painted by the chart engine from the chart's own settings and never reads an indicator's, so an input of your own under this id would be a dead control. Do not declare it, and do not read it in `calc()` / `draw()`. This does NOT apply to `showLabels`, which is a different, script-owned toggle for text your own `draw()` paints on the canvas with `bv.label`.
+- FIGURE STYLES CALLBACK SIGNATURE: Figure `styles` callbacks receive `({ data, indicator, defaultStyles })`. Access bar calculation data using `data?.current?.key` and previous bar with `data?.prev?.key`. NEVER use `({ bar })` as bar is undefined!
+- MANDATORY FIGURE STYLES BINDING FOR COLOR/WIDTH INPUTS: When an indicator provides color or line-width settings in Inputs for figures (e.g. vwapColor, vwapLineWidth), you MUST define a `styles: ({ indicator }) => ({ color: indicator?.extendData?.inputs?.vwapColor, size: indicator?.extendData?.inputs?.vwapLineWidth })` callback on that figure. KlineCharts renders figures with static default palette colors unless `styles` is defined — omitting `styles` makes color/width changes in Settings fail silently on the chart canvas!
+- SETTINGS TABS: Every input stays on the Inputs tab unless it carries `"tab": "style"`; nothing moves on its own. Add `"tab": "style"` to color, line-width and line-style inputs so they show on the Style tab, and give each one a name that says what it paints ("Asia Color", never a bare "Color"): on Style it no longer sits next to its toggle. Never put `"tab"` on bool toggles (Show X): they stay on Inputs. `"group"` does not move an input.
+- VERTICAL TIME LINES VS CANDLE BOXES: When the source draws full-height vertical time markers, NEVER substitute them with candle bounding boxes. Use bv.bounds(args) and draw a vertical Canvas stroke from top to bottom, with a label above the candle when needed. Keep background shading disabled unless the source explicitly fills it.
+- Return array from `calc()` MUST match `dataList.length` exactly.
+- Return {} for bars with insufficient history.
+- DRAW RETURN CONTRACT: A custom draw(args) that decorates declared figures MUST return false (or omit a return) so KlineCharts still paints those figures. Return true only when draw() intentionally paints the complete indicator and should suppress every figure.
+- HARD LIMITS: The Script tab accepts at most 500 * 1024 characters. The Inputs tab accepts at most 200 entries, select accepts at most 40 options, and text defaults are at most 200 characters. If a source cannot fit coherently, stop and propose a split into independently useful indicators instead of silently truncating it.
+- ALLOWED OUTPUT SURFACE: Use only standard JavaScript, calc(), draw(args), Canvas 2D, and documented bv helpers. Figure types are line, bar, rect, circle, and text. Signal arrows must be drawn with bv.label/bv.text or Canvas, not an invented "arrow" figure type.
+- SECURITY: Do not emit fetch, XMLHttpRequest, WebSocket, sendBeacon, DOM/document/window access, localStorage/sessionStorage/indexedDB/cookies, eval, Function, dynamic import, timers, workers, DLL/file/terminal/account access, prototype mutation, or obfuscated code. Strip all source behavior that performs I/O, trading, telemetry, licensing, identity, or persistence.
+
+TA MATH RECIPES (Embed directly into `calc()` as needed):
+- Moving averages: DO NOT hand-write one. Call `bv.ma(values, length, 'SMA'|'EMA'|'WMA'|'RMA')` — `bv` is in scope for the whole script, `calc()` included, and it matches the platform's own indicators (Wilder's smoothing included).
+- ATR: function calcATR(dataList, len = 14) { const tr = new Array(dataList.length); for (let i = 0; i < dataList.length; i++) { const h = dataList[i].high, l = dataList[i].low; const prevC = i > 0 ? dataList[i - 1].close : dataList[i].open; tr[i] = Math.max(h - l, Math.abs(h - prevC), Math.abs(l - prevC)); } return bv.ma(tr, len, 'RMA'); }
+- Volume profile: DO NOT hand-write one. Narrow the bars with `bv.visibleBars(args, dataList)`, then `bv.volumeProfile(args, bars, { rowLayout: 'rows', rowCount, valueAreaPercent })` returns { ok, bins, poc, vah, val, pocIndex, valIndex, vahIndex, maxBin, maxAbsDelta, totalVolume, usedTickVolume, low, high, rowHeight }, each bin { low, high, mid, up, down, total }, and bins valIndex..vahIndex are the value area. `bv.developingLevels(bars, opts, { valueArea })` gives the developing POC/VA series. The result is frozen — read it, never write to it. A histogram row is a PIXEL-width shape and `bv.box` spans bar INDEXES, so paint the rows on `args.ctx` with fillRect and keep `bv.line` for the level lines.
+- Pivots: function calcPivots(dataList, left = 10, right = 10) { const ph = new Array(dataList.length).fill(null), pl = new Array(dataList.length).fill(null); for (let i = left + right; i < dataList.length; i++) { const p = i - right, tH = dataList[p].high, tL = dataList[p].low; let isPh = true, isPl = true; for (let k = p - left; k <= i; k++) { if (k === p) continue; if (dataList[k].high > tH) isPh = false; if (dataList[k].low < tL) isPl = false; } if (isPh) ph[i] = { index: p, price: tH }; if (isPl) pl[i] = { index: p, price: tL }; } return { ph, pl }; }
+
+Use the attached source bundle. Do not ask the user to paste files that are already attached.

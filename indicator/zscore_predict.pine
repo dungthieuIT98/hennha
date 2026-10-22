@@ -1,0 +1,135 @@
+//@version=6
+// -----------------------------------------------------------------------------
+// | © AlgoPoint                                                               |
+// | Indicator: Z-Score Predictive Zones [AlgoPoint]                           |
+// | Developer: Harmony Algo & AlgoPoint Collaboration                         |
+// -----------------------------------------------------------------------------
+indicator('Z-Score Predictive Zones [AlgoPoint]', overlay=true, max_labels_count = 500)
+// ==========================================
+// --- SETTINGS ---
+// ==========================================
+
+length        = input.int(144,   'Z-Score Length',     group="Z-Score Settings", tooltip="The period used to calculate the Mean and Standard Deviation.")
+smooth        = input.int(20,    'Smoothing (VWMA)',    group="Z-Score Settings", tooltip="Smoothing factor to reduce noise in the Z-Score.")
+history_depth = input.int(25,    'Lookback Depth',      group="Zone Calculation",  tooltip="How many recent reversal points should be remembered to calculate the average Support/Resistance levels?")
+z_thersh      = input.float(1.5, "Thershold",           step=0.1, group="Thresholds")
+z_thresh_top  = z_thersh
+z_thresh_bot  = -z_thersh
+
+// Sideways filter: measure how much the price bands drift over N bars (as %).
+// res_band_low / sup_band_high update every bar because mean (SMA144) and
+// std_dev (STDEV144) recalculate on each close — they are continuous lines,
+// not steplines. Using % change normalizes across coins (BTC at 100k vs ADA at 0.5).
+//   band_slope ≤ threshold → bands nearly flat → sideways ✅
+//   band_slope >  threshold → bands drifting → trending ❌
+// Default: lookback=12 (48h on H4), threshold=1.0%
+slope_lookback  = input.int(12,   "Slope Lookback (bars)", group="Sideways Filter", tooltip="Number of bars to measure band drift. 12 bars = 48h on H4.")
+slope_threshold = input.float(1.0, "Slope Threshold (%)",  group="Sideways Filter", step=0.1, tooltip="Max % drift of price bands over lookback. 1.0 = sideways if bands moved less than 1% in 48h. Lower = stricter.")
+
+labels_on_chart  = input.bool(true, "Show Signal Dots on Chart", group="Visuals")
+show_midline     = input.bool(true, "Show Midline",               group="Visuals")
+show_sideways_bg = input.bool(true, "Highlight Sideways Bars",    group="Visuals")
+
+// ==========================================
+// --- CALCULATIONS ---
+// ==========================================
+
+mean    = ta.sma(close, length)
+std_dev = ta.stdev(close, length)
+raw_z   = (close - mean) / std_dev
+z_score = ta.vwma(raw_z, smooth)
+
+ph = ta.pivothigh(z_score, 1, 1)
+pl = ta.pivotlow(z_score,  1, 1)
+
+valid_top_reversal = not na(ph) and ph > z_thresh_top
+valid_bot_reversal = not na(pl) and pl < z_thresh_bot
+
+var top_reversals = array.new_float(0)
+var bot_reversals = array.new_float(0)
+
+if valid_top_reversal
+    array.unshift(top_reversals, ph)
+    if array.size(top_reversals) > history_depth
+        array.pop(top_reversals)
+
+if valid_bot_reversal
+    array.unshift(bot_reversals, pl)
+    if array.size(bot_reversals) > history_depth
+        array.pop(bot_reversals)
+
+avg_top_level = array.size(top_reversals) > 0 ? array.avg(top_reversals) : 2.0
+avg_bot_level = array.size(bot_reversals) > 0 ? array.avg(bot_reversals) : -2.0
+
+// Price bands — declared here so the sideways filter can reference them
+res_band_low  = mean + (avg_top_level         * std_dev)
+res_band_high = mean + ((avg_top_level + 0.5) * std_dev)
+sup_band_high = mean + (avg_bot_level         * std_dev)
+sup_band_low  = mean + ((avg_bot_level - 0.5) * std_dev)
+
+// ==========================================
+// --- SIDEWAYS FILTER: Price Band Slope (%) ---
+// Apply the same vwma(4) smoothing used in the plots so we measure the
+// same line the trader sees, not the raw unsmoothed band.
+// ==========================================
+
+midline    = (avg_top_level + avg_bot_level) / 2  // visual only
+
+res_smooth = ta.vwma(res_band_low,  4)
+sup_smooth = ta.vwma(sup_band_high, 4)
+res_prev   = nz(res_smooth[slope_lookback], res_smooth)
+sup_prev   = nz(sup_smooth[slope_lookback], sup_smooth)
+res_slope  = res_prev != 0 ? math.abs(res_smooth - res_prev) / res_prev * 100 : 0.0
+sup_slope  = sup_prev != 0 ? math.abs(sup_smooth - sup_prev) / sup_prev * 100 : 0.0
+band_slope = (res_slope + sup_slope) / 2
+is_sideways = band_slope <= slope_threshold
+
+rsi         = ta.rsi(close, 14)
+rsima       = ta.ema(rsi, 9)
+othercolors = rsima > 80 ? #822f90 : rsima > 60 ? #6f37ab : rsima < 20 ? #525d91 : rsima < 40 ? #5e49a6 : #673ab6
+
+// ==========================================
+// --- PLOTTING: OSCILLATOR PANE ---
+// ==========================================
+
+plot(z_score, color=othercolors, title='Z-Score Oscillator', linewidth=2)
+hline(0, "Zero Line", color=color.gray, linestyle=hline.style_dotted)
+
+p_avg_top = plot(avg_top_level, "Avg Resistance (Osc)", color=color.new(#F23645, 20), linewidth=1, style=plot.style_stepline)
+p_avg_bot = plot(avg_bot_level, "Avg Support (Osc)",    color=color.new(#089981, 20), linewidth=1, style=plot.style_stepline)
+
+p_avg_top_upper = plot(avg_top_level + 0.5, "Osc Resistance Upper", color=color.new(#F23645, 0), display=display.none)
+p_avg_bot_lower = plot(avg_bot_level - 0.5, "Osc Support Lower",    color=color.new(#089981, 0), display=display.none)
+
+fill(p_avg_top, p_avg_top_upper, color=color.new(#F23645, 90), title="Oscillator Resistance Zone")
+fill(p_avg_bot, p_avg_bot_lower, color=color.new(#089981, 90), title="Oscillator Support Zone")
+
+// Midline: flat = sideways, sloping = trending
+plot(show_midline ? midline : na, "Midline", color=color.new(color.white, 50), linewidth=1)
+
+// Blue background when market is confirmed sideways
+bgcolor(show_sideways_bg and is_sideways ? color.new(color.blue, 92) : na, title="Sideways Market")
+
+// ==========================================
+// --- PLOTTING: MAIN CHART (OVERLAY) ---
+// ==========================================
+
+p_res_top = plot(ta.vwma(res_band_high, 4), title="Chart Resistance High", color=color.new(#F23645, 100), force_overlay=true)
+p_res_bot = plot(ta.vwma(res_band_low,  4), title="Chart Resistance Low",  color=color.new(#F23645, 50),  force_overlay=true)
+p_sup_top = plot(ta.vwma(sup_band_high, 4), title="Chart Support High",    color=color.new(#089981, 50),  force_overlay=true)
+p_sup_bot = plot(ta.vwma(sup_band_low,  4), title="Chart Support Low",     color=color.new(#089981, 100), force_overlay=true)
+
+fill(p_res_top, p_res_bot, color=color.new(#F23645, 85), title="Chart Resistance Fill")
+fill(p_sup_top, p_sup_bot, color=color.new(#089981, 85), title="Chart Support Fill")
+
+// ==========================================
+// --- SIGNALS (Sideways Market Only) ---
+// Signals are suppressed when bands are drifting (trending market).
+// ==========================================
+
+short_signal = is_sideways and high > res_band_low and not (high[1] > res_band_low[1])
+long_signal  = is_sideways and low  < sup_band_high and not (low[1]  < sup_band_high[1])
+
+y1 = low  - (ta.atr(30) * 0.8)
+y2 = high + (ta.atr(30) * 0.8)
+

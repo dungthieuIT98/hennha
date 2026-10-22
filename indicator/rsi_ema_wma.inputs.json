@@ -1,0 +1,16 @@
+[
+  { "id": "src", "name": "Source", "type": "select", "options": ["open", "high", "low", "close", "hl2", "hlc3", "ohlc4", "hlcc4"], "defval": "close" },
+  { "id": "rsiLen", "name": "RSI Length", "type": "int", "defval": 14, "min": 1, "max": 500, "step": 1 },
+  { "id": "emaRsiLen", "name": "EMA Length", "type": "int", "defval": 9, "min": 1, "max": 500, "step": 1 },
+  { "id": "wmaRsiLen", "name": "WMA Length", "type": "int", "defval": 21, "min": 1, "max": 500, "step": 1 },
+  { "id": "midLine", "name": "Middle Line", "type": "int", "defval": 50, "min": 0, "max": 100, "step": 1 },
+  { "id": "autoHtf", "name": "Auto-detect HTF", "type": "bool", "defval": true },
+  { "id": "manualHtf", "name": "Manual HTF (Auto off)", "type": "timeframe", "defval": "1D" },
+  { "id": "htfWmaLen", "name": "HTF WMA Length", "type": "int", "defval": 21, "min": 1, "max": 500, "step": 1 },
+  { "id": "htfSlope", "name": "HTF WMA Slope Bars", "type": "int", "defval": 2, "min": 1, "max": 100, "step": 1 },
+  { "id": "showHtf", "name": "Show HTF WMA", "type": "bool", "defval": true },
+  { "id": "showInfo", "name": "Show Info Box", "type": "bool", "defval": true },
+  { "id": "useChop", "name": "Sideway Filter (CI)", "type": "bool", "defval": true },
+  { "id": "ciLen", "name": "Choppiness Length", "type": "int", "defval": 14, "min": 2, "max": 500, "step": 1 },
+  { "id": "ciThr", "name": "Choppiness Threshold (<)", "type": "float", "defval": 50.0, "min": 0, "max": 100, "step": 0.5 }
+]

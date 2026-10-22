@@ -1,0 +1,11 @@
+[
+  { "id": "length", "name": "Z-Score Length", "type": "int", "defval": 144, "min": 2, "max": 2000, "step": 1 },
+  { "id": "smooth", "name": "Smoothing (VWMA)", "type": "int", "defval": 20, "min": 1, "max": 500, "step": 1 },
+  { "id": "history_depth", "name": "Lookback Depth", "type": "int", "defval": 25, "min": 1, "max": 500, "step": 1 },
+  { "id": "z_thersh", "name": "Thershold", "type": "float", "defval": 1.5, "min": 0, "max": 10, "step": 0.1 },
+  { "id": "slope_lookback", "name": "Slope Lookback (bars)", "type": "int", "defval": 12, "min": 0, "max": 500, "step": 1 },
+  { "id": "slope_threshold", "name": "Slope Threshold (%)", "type": "float", "defval": 1.0, "min": 0, "max": 100, "step": 0.1 },
+  { "id": "labels_on_chart", "name": "Show Signal Dots on Chart", "type": "bool", "defval": true },
+  { "id": "show_midline", "name": "Show Midline", "type": "bool", "defval": true },
+  { "id": "show_sideways_bg", "name": "Highlight Sideways Bars", "type": "bool", "defval": true }
+]
