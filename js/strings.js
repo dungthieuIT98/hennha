@@ -290,6 +290,9 @@ window.HN.I18N = {
     "ui.shotAlt": "Ảnh thẻ kèo",
     "ui.shotHint": "Nhấn giữ ảnh để lưu về máy",
     "ui.download": "Tải ảnh",
+    "ui.save": "Lưu ảnh",
+    "ui.saveFail": "Không mở được bảng lưu ảnh, cậu nhấn giữ ảnh để lưu nhé",
+    "ui.shotInApp": "Nhấn giữ ảnh để lưu. Nếu không được, mở link này bằng Safari hoặc Chrome rồi lưu lại nhé",
     "ui.close": "Đóng",
 
     "env.letter": "Đi date hông?",
@@ -639,6 +642,9 @@ window.HN.I18N = {
     "ui.shotAlt": "Ticket image",
     "ui.shotHint": "Long-press the image to save it",
     "ui.download": "Download",
+    "ui.save": "Save image",
+    "ui.saveFail": "Couldn't open the save sheet, long-press the image instead",
+    "ui.shotInApp": "Long-press the image to save it. If that doesn't work, open this link in Safari or Chrome and save it there",
     "ui.close": "Close",
 
     "env.letter": "Shall we?",

@@ -202,24 +202,53 @@
     return close;
   };
   // in-app browsers block downloads, so the image is shown for long-press saving
+  // in-app browsers of chat and social apps block downloads; only a long-press or another browser works there
+  const IN_APP = /FBAN|FBAV|FB_IAB|Instagram|Messenger|Zalo|Line\/|TikTok|musical_ly/i.test(navigator.userAgent);
+  const FILE_NAME = "didatehong.png";
+  function dataUrlBlob(url) {
+    const [head, b64] = url.split(",");
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: (head.match(/^data:([^;]+)/) || [])[1] || "image/png" });
+  }
+  // url: the image as a data: URL (HN.ticketImage). Phones get the system share sheet, which has "Save image";
+  // the file is prepared before the tap because Safari only opens the sheet straight from a tap.
   HN.shot = (url) => {
+    const blob = dataUrlBlob(url);
+    const objUrl = URL.createObjectURL(blob);
+    const file = typeof File === "function" ? new File([blob], FILE_NAME, { type: blob.type }) : null;
+    const canShare = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));
     const dlg = el("dialog", "shot");
     const img = el("img", "shot-img");
-    img.src = url;
+    img.src = objUrl;
     img.alt = HN.t("ui.shotAlt");
-    const hint = el("p", "shot-hint", HN.t("ui.shotHint"));
+    const hint = el("p", "shot-hint", HN.t(IN_APP && !canShare ? "ui.shotInApp" : "ui.shotHint"));
     hint.id = "shot-" + HN.randomCode(6);
     dlg.setAttribute("aria-labelledby", hint.id);
     const row = el("div", "shot-actions");
-    const dl = el("a", "btn btn-ghost btn-sm", HN.t("ui.download"));
-    dl.href = url;
-    dl.download = "didatehong.png";
-    const closeBtn = el("button", "btn btn-sm", HN.t("ui.close"));
+    const closeBtn = el("button", canShare ? "btn btn-ghost btn-sm" : "btn btn-sm", HN.t("ui.close"));
     closeBtn.type = "button";
-    closeBtn.autofocus = true;
-    row.append(dl, closeBtn);
+    if (canShare) {
+      const save = el("button", "btn btn-sm", HN.t("ui.save"));
+      save.type = "button";
+      save.autofocus = true;
+      save.addEventListener("click", async () => {
+        try { await navigator.share({ files: [file] }); } catch (e) { if (e.name !== "AbortError") HN.toast(HN.t("ui.saveFail")); }
+      });
+      row.append(save, closeBtn);
+    } else {
+      const dl = el("a", "btn btn-ghost btn-sm", HN.t("ui.download"));
+      dl.href = objUrl;
+      dl.download = FILE_NAME;
+      closeBtn.autofocus = true;
+      row.append(dl, closeBtn);
+    }
     dlg.append(img, hint, row);
     const close = modal(dlg, {});
+    const revoke = () => URL.revokeObjectURL(objUrl);
+    dlg.addEventListener("close", revoke);
+    HN.onLeave(revoke);
     closeBtn.onclick = () => close();
     gsap.fromTo(dlg, { opacity: 0 }, { opacity: 1, duration: 0.25 });
     gsap.fromTo(img, { y: 60, scale: 0.85, rotation: -4 }, { y: 0, scale: 1, rotation: 0, duration: 0.7, ease: "back.out(1.6)" });

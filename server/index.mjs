@@ -160,7 +160,7 @@ async function saveInvite(req, res) {
 /* ---------- static files (allowlist, canonical path must stay under the root) ---------- */
 const MIME = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
-  ".woff2": "font/woff2", ".png": "image/png", ".txt": "text/plain; charset=utf-8",
+  ".woff2": "font/woff2", ".png": "image/png", ".svg": "image/svg+xml", ".txt": "text/plain; charset=utf-8",
 };
 const ALLOWED_DIRS = new Set(["css", "fonts", "img", "js", "vendor", "lottie"]);
 const BUNDLE = /^app\.[a-f0-9]{10}\.js$/;

@@ -11,8 +11,8 @@ import { gzipSync } from "node:zlib";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "dist");
-// copied as they are: stylesheets and fonts, plus the Lottie files js/fx.js loads after the first screen
-const COPY = ["css", "fonts", "vendor/lottie_light.min.js", "lottie/animations.js"];
+// copied as they are: stylesheets and fonts, the Lottie files js/fx.js loads after the first screen, and the tab/home-screen icons
+const COPY = ["css", "fonts", "vendor/lottie_light.min.js", "lottie/animations.js", "img/favicon.svg", "img/favicon-32.png", "img/apple-touch-icon.png"];
 const SCRIPT_TAG = /<script src="([^"]+)"><\/script>\r?\n?/g;
 
 const fail = (msg) => { console.error("build failed: " + msg); process.exit(1); };
