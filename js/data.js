@@ -5,6 +5,7 @@ window.HN = {
   PAYMENT_ENABLED: false,
   NO_LIMIT: 5,
 
+  // links store positions in TEMPLATES and PLANS (see v2 in core.js): append new entries, never remove or reorder
   TEMPLATES: [{ id: "t6" }, { id: "t7" }],
 
   PLANS: [

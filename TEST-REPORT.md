@@ -1,157 +1,191 @@
-# Báo cáo test UI DiDateHong, 23/10/2026
+# Báo cáo test UI DiDateHong, vòng 2 (sau khi sửa), 23/10/2026
+
+Vòng 1 (commit `a945235`) tìm ra 12 vấn đề. Vòng này sửa cả 12, sửa thêm 4 vấn đề lộ ra trong lúc test lại, rút gọn link gửi thiệp, rồi chạy lại toàn bộ test trên bản build cuối.
 
 ## 1. Môi trường
 
 | Mục | Giá trị |
 | --- | --- |
-| Commit | `a945235` (bản build `dist/`, `app.4026e9baba.js` 240.8KB, 81KB khi gzip) |
+| Code | `a945235` + các thay đổi trong commit này. Build `dist/app.a0233f255e.js` 249.6KB (84.6KB gzip, khoảng 73KB brotli) |
 | Trình duyệt | Chrome 155.0.8059.85, headless, điều khiển bằng `playwright-core` |
-| Server test | `.claude/skills/hennha-ui-test/scripts/serve.mjs`: cùng header với `server/index.mjs` (không nén, `no-cache`), `/api/*` trả stub nên không cần Google key |
-| Desktop | 1280×800 |
-| Mobile | 390×844, DPR 3, touch, UA Android Chrome, `vi-VN`, `Asia/Ho_Chi_Minh` |
-| 4G | RTT 150ms, tải xuống 9 Mbps / tải lên 1.5 Mbps, CPU chậm 4x |
-| 4G yếu | RTT 150ms, 1.6 Mbps / 750 Kbps, CPU chậm 4x (giống profile mobile của Lighthouse) |
+| Server test | `.claude/skills/hennha-ui-test/scripts/serve.mjs`: dùng đúng code phục vụ file tĩnh của production (`server/static.mjs`); `/api/*` trả stub |
+| Desktop / Mobile | 1280×800 / 390×844, DPR 3, touch, UA Android Chrome, `vi-VN` |
+| 4G | RTT 150ms, 9 Mbps / 1.5 Mbps, CPU chậm 4x |
+| 4G yếu | RTT 150ms, 1.6 Mbps / 750 Kbps, CPU chậm 4x |
 | Chạy lại | skill `hennha-ui-test` (`.claude/skills/hennha-ui-test/SKILL.md`) |
 
-Kết quả cuối: **100/100 case pass** (50 desktop, 50 mobile). Các lần chạy trước có vài case fail, tất cả đều do test chờ chưa đủ lâu và đã được xác minh lại (xem mục 5).
+## 2. Tóm tắt
 
-## 2. Test case chức năng và layout
+- **E2E: 107/107 pass** (55 desktop, 52 mobile). Tất cả các lượt chạy trên bản cuối đều pass hết.
+- **Mã hóa link** (`link-codec.cjs`): 3 lượt, mỗi lượt gồm 3000 lần encode→decode, link v1 cũ và 20.000 link hỏng. Kết quả **ALL OK**.
+- **Giật trên 4G:** home và màn người nhận từ 29–61% frame mượt lên **85–99%**.
+- **Dung lượng tải:** 699KB → **229KB**. Trên 4G yếu, hero hiện sau 3.2s (trước 4.3s), LCP 2.3s (trước 3.9s).
+- **Link gửi thiệp:** lời mời mẫu 266 → **62** ký tự, tự viết 249 → **103**, dài nhất 475 → **247**.
 
-✅ pass · ⚠️ pass nhưng có ghi chú cải tiến · ❌ fail · – không áp dụng
+## 3. Test case chức năng và layout
+
+✅ pass · ⚠️ pass nhưng có ghi chú · ❌ fail · – không áp dụng. Case mới so với vòng 1: H13, R14, S01–S03. C15, H05 và Q03 được viết lại để kiểm đúng lỗi vừa sửa.
 
 | ID | Khu vực | Test case | Desktop | Mobile | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| H01 | Home | Mở trang chủ, hero + thiệp mẫu hiện, không lỗi JS | ✅ | ✅ | |
-| H02 | Layout | Home (đầu trang): không tràn ngang, không phần tử nào lòi khỏi màn | ✅ | ⚠️ | Touch target < 44px: logo 129×24, "Thiệp của tôi" 138×40, nút EN 44×34, link footer cao 22px |
-| H03 | Home | Đổi ngôn ngữ VI → EN → VI | ✅ | ✅ | Trên mobile chỉ hiện nút của ngôn ngữ chưa chọn (đúng thiết kế) |
-| H04 | Home | Thiệp mẫu: bấm tim → câu hỏi → nút Không né 5 lần → Đồng ý → Chơi lại | ✅ | ✅ | Từ lúc bấm tim tới khi câu hỏi hiện mất khoảng 2.7s (xem mục 5, #11) |
-| H05 | Home | Mobile: nút "Tạo thiệp" dính đáy hiện khi cuộn qua hero | – | ⚠️ | Nút hiện trễ: khi CTA của hero đã nằm dưới topbar thì vẫn bị tính là đang hiện (#8) |
-| H06 | Home | Khối story: ảnh vé mẫu vẽ xong khi cuộn tới | ✅ | ✅ | |
-| H07 | Layout | Home (khối vé): không tràn | ✅ | ⚠️ | Touch target như H02 |
-| H08 | Home | Góp ý: chọn cảm nhận → Tiếp → chọn kênh → Gửi → cảm ơn | ✅ | ✅ | Bấm Gửi khi chưa chọn kênh thì báo lỗi đúng |
-| H09 | Pages | Footer → Quyền riêng tư | ✅ | ✅ | |
-| H10 | Pages | Footer → Điều khoản | ✅ | ✅ | |
-| H11 | Pages | Footer → Liên hệ | ✅ | ✅ | |
-| H12 | Home | Nút "Xem thiệp mẫu" → màn người nhận demo | ✅ | ✅ | |
-| C01 | Create | B1: chưa nhập thì nút Tiếp bị khóa, xóa tên người nhận thì báo lỗi + `aria-invalid` | ✅ | ✅ | |
-| C02 | Create | B1: tối đa 20 ký tự, Tab chuyển sang ô kế tiếp | ✅ | ✅ | Tên tiếng Việt bị gạch đỏ chính tả (#12) |
-| C03 | Layout | Create B1: không tràn | ✅ | ⚠️ | Touch target của topbar |
-| C04 | Create | B2: chọn mẫu (`aria-pressed`), xóa trống thì báo lỗi, tự viết lời mời | ✅ | ✅ | 2 mẫu |
-| C05 | Layout | Create B2: không tràn | ✅ | ⚠️ | Nút stepper 60×36 |
-| C06 | Create | B3: chọn ngày + giờ + phút, đổi sang "để người ấy chọn" rồi quay lại vẫn giữ giờ | ✅ | ✅ | |
-| C07 | Create | B3: dropdown giờ đóng bằng Escape | ✅ | ✅ | |
-| C08 | Layout | Create B3: không tràn | ✅ | ⚠️ | Ô ngày trong lịch 39×38, nút đổi tháng 40×40 |
-| C09 | Create | Tải lại trang ở B3 vẫn giữ nháp | ✅ | ✅ | |
-| C10 | Create | B4: chọn 2 kèo ăn + 1 kèo chơi, bộ đếm đúng | ✅ | ✅ | |
-| C11 | Layout | Create B4: không tràn | ✅ | ⚠️ | Tab Ăn uống / Đi chơi cao 40px |
-| C12 | Create | B5: iframe xem trước chạy màn người nhận, sheet Sửa mở và đóng được bằng Escape | ✅ | ✅ | |
-| C13 | Layout | Create B5: không tràn | ✅ | ⚠️ | Link "Xem lại từ đầu" cao 39px |
-| C14 | Create | B6: chưa tick đồng ý thì nút Tạo link bị khóa và có dòng giải thích | ✅ | ✅ | |
-| C15 | Create | B7: tạo link, Copy (đúng clipboard), Chia sẻ (`navigator.share` nhận đúng link), "Thiệp của tôi" = 1 | ✅ | ✅ | Link dài 249 ký tự |
-| C16 | Layout | Create B7: không tràn | ✅ | ⚠️ | Nút Copy cao 38px |
-| C17 | Create | Tải lại ở B7 vẫn giữ; "Tạo thiệp mới" về B1 trống | ✅ | ✅ | |
-| C18 | Create | Cả luồng tạo không có lỗi JS hay request lỗi | ✅ | ✅ | |
-| R01 | Receiver | Mở link: phong bì → bấm tim → câu rủ đúng nội dung | ✅ | ✅ | |
-| R02 | Receiver | Nút Không né 5 lần rồi biến mất, hiện lời năn nỉ | ✅ | ✅ | |
-| R03 | Layout | Màn câu rủ: không tràn | ✅ | ⚠️ | Touch target của topbar |
-| R04 | Receiver | Đồng ý → giờ hẹn cố định → Chốt giờ | ✅ | ✅ | |
-| R05 | Receiver | Kèo: chọn 1 kèo; xóa chữ ký thì báo lỗi và khóa nút; ký lại → Xong | ✅ | ✅ | |
-| R06 | Layout | Màn vé hẹn: không tràn | ✅ | ⚠️ | Touch target của topbar |
-| R07 | Receiver | Lưu ảnh vé: hộp xem ảnh mở, có ảnh, Escape đóng | ✅ | ✅ | |
-| R08 | Receiver | Thêm vào lịch: sheet có link Google Calendar + file `.ics` | ✅ | ✅ | |
-| R09 | Receiver | "Tạo thiệp của bạn" → sang màn tạo | ✅ | ✅ | |
-| R10 | Receiver | Đề xuất giờ khác + kèo khác → vé ghi "đề xuất", ẩn nút thêm lịch | ✅ | ✅ | |
-| R11 | Receiver | Thiệp "để người nhận chọn giờ": lịch hiện ngay, chọn xong mới cho Tiếp | ✅ | ✅ | |
-| R12 | Receiver | Link hỏng → màn "thiệp không còn" | ✅ | ✅ | |
-| R13 | Receiver | Cả luồng người nhận không có lỗi JS hay request lỗi | ✅ | ✅ | |
-| Q01 | Manage | Thiệp của tôi: có thiệp vừa tạo + 1 phản hồi, mở xem được phản hồi | ✅ | ✅ | |
-| Q02 | Layout | Danh sách thiệp: không tràn | ✅ | ⚠️ | "Xem phản hồi" chỉ cao 28px; Copy/Mở/Lưu ảnh/Thêm vào lịch cao 38px |
-| Q03 | Manage | Tab Lịch hiện được | ✅ | ⚠️ | Lịch mở ở tháng hiện tại, còn hẹn rơi vào tháng sau nên nhìn vào thấy trống (#9) |
-| Q04 | Layout | Tab Lịch: không tràn | ✅ | ⚠️ | Ô ngày 43×38 |
-| Q05 | Manage | "Xem dữ liệu mẫu" hiện 3 thiệp mẫu, mở được phản hồi | ✅ | ✅ | |
-| Q06 | Manage | Trình duyệt mới: trạng thái trống có 1 hành động rõ ràng | ✅ | ✅ | |
-| Q07 | Manage | Màn quản lý không có lỗi JS hay request lỗi | ✅ | ✅ | |
-| K01 | A11y | Bàn phím: Tab tới nút Tạo thiệp, Enter mở màn tạo, có viền focus | ✅ | – | |
+| H01 | Home | Mở trang chủ, hero + thiệp mẫu hiện, không lỗi JS | ✅ | ✅ |  |
+| H02 | Layout | home-top: không tràn ngang, không phần tử lòi khỏi màn | ✅ | ✅ |  |
+| H03 | Home | Đổi ngôn ngữ VI → EN → VI | ✅ | ✅ | "Tạo thiệp – miễn phí →" ↔ "Create one, free →" |
+| H04 | Home | Thiệp mẫu: bấm tim → câu hỏi → nút Không né 5 lần → Đồng ý → Chơi lại | ✅ | ✅ | nút Không đổi 6 câu chữ |
+| H05 | Home | Điện thoại: nút Tạo thiệp dính đáy hiện ngay khi nút của hero lọt dưới topbar | – | ✅ | Đúng case từng fail ở vòng 1 |
+| H06 | Home | Khối story: ảnh vé mẫu vẽ xong khi cuộn tới | ✅ | ✅ |  |
+| H07 | Layout | home-ticket: không tràn ngang, không phần tử lòi khỏi màn | ✅ | ✅ |  |
+| H08 | Home | Góp ý trang chủ: chọn cảm nhận → Tiếp → chọn kênh → Gửi → cảm ơn | ✅ | ✅ | gửi khi chưa chọn kênh → hiện lỗi đúng |
+| H09 | Pages | Footer → trang privacy | ✅ | ✅ |  |
+| H10 | Pages | Footer → trang terms | ✅ | ✅ |  |
+| H11 | Pages | Footer → trang contact | ✅ | ✅ |  |
+| H12 | Home | Nút Xem thiệp mẫu → màn người nhận demo | ✅ | ✅ |  |
+| H13 | Motion | Home: số animation chạy cùng lúc ít, lá thư bay chỉ dùng transform, toast ẩn hẳn | ✅ | ✅ | Desktop 39 animation, 22 hạt bay; mobile 25 animation, 8 hạt bay |
+| C01 | Create | B1 tên: chưa nhập thì nút Tiếp khóa, xóa tên người nhận thì báo lỗi | ✅ | ✅ |  |
+| C02 | Create | B1: giới hạn 20 ký tự, Tab chuyển ô | ✅ | ✅ |  |
+| C03 | Layout | create-1: không tràn ngang, không phần tử lòi khỏi màn | ✅ | ✅ |  |
+| C04 | Create | B2 lời mời: chọn mẫu, xóa trống báo lỗi, tự viết | ✅ | ✅ | 2 mẫu |
+| C05 | Layout | create-2: không tràn ngang, không phần tử lòi khỏi màn | ✅ | ✅ |  |
+| C06 | Create | B3 thời gian: chọn ngày + giờ + phút, đổi qua 'để người ấy chọn' rồi quay lại | ✅ | ✅ | ✓ Chủ nhật, 01/11/2026 lúc 19:00 |
+| C07 | Create | B3: dropdown giờ đóng bằng Escape, focus về nút | ✅ | ✅ |  |
+| C08 | Layout | create-3: không tràn ngang, không phần tử lòi khỏi màn | ✅ | ⚠️ | Ô ngày trong lịch rộng 39–43px (lưới 7 cột trên 390px), cao 44px |
+| C09 | Create | Nháp được giữ khi tải lại trang (đang ở B3) | ✅ | ✅ |  |
+| C10 | Create | B4 kèo: chọn 2 món ăn + 1 món chơi, bộ đếm đúng | ✅ | ✅ | Đã chọn 3 kèo |
+| C11 | Layout | create-4: không tràn ngang, không phần tử lòi khỏi màn | ✅ | ✅ |  |
+| C12 | Create | B5 xem trước: iframe chạy màn người nhận, sheet Sửa mở/đóng bằng Escape | ✅ | ✅ |  |
+| C13 | Layout | create-5: không tràn ngang, không phần tử lòi khỏi màn | ✅ | ✅ |  |
+| C14 | Create | B6: chưa tick đồng ý thì nút Tạo link khóa và có lời giải thích | ✅ | ✅ |  |
+| C15 | Create | B7: bấm Tạo link 2 lần ngay khi B6 hiện → sang B7, chỉ 1 thiệp; copy link, chia sẻ | ✅ | ✅ | Link dài 102 ký tự (vòng 1: 249). Test này fail trên code cũ ("đếm thiệp: 2") |
+| C16 | Layout | create-7: không tràn ngang, không phần tử lòi khỏi màn | ✅ | ✅ |  |
+| C17 | Create | B7 giữ nguyên khi tải lại; 'Tạo thiệp mới' về B1 trống | ✅ | ✅ |  |
+| C18 | Create | Không có lỗi JS / request lỗi trong cả luồng tạo | ✅ | ✅ |  |
+| R01 | Receiver | Mở link: phong bì → bấm tim → câu rủ đúng nội dung | ✅ | ✅ | Link định dạng v2 |
+| R02 | Receiver | Nút Không né (5 lần) rồi biến mất, hiện lời năn nỉ | ✅ | ✅ | 6 câu chữ |
+| R03 | Layout | recv-2: không tràn ngang, không phần tử lòi khỏi màn | ✅ | ✅ |  |
+| R04 | Receiver | Đồng ý → giờ hẹn cố định → Chốt giờ | ✅ | ✅ |  |
+| R05 | Receiver | Kèo: chọn 1 kèo; xóa chữ ký báo lỗi; ký lại → Xong | ✅ | ✅ |  |
+| R06 | Layout | recv-5: không tràn ngang, không phần tử lòi khỏi màn | ✅ | ✅ |  |
+| R07 | Receiver | Lưu ảnh vé: hộp xem ảnh mở, có ảnh, Escape đóng | ✅ | ✅ | Ảnh giờ là Blob (`toBlob`) |
+| R08 | Receiver | Thêm vào lịch: sheet có link Google Calendar + file .ics | ✅ | ✅ |  |
+| R09 | Receiver | 'Tạo thiệp của bạn' → sang màn tạo | ✅ | ✅ |  |
+| R10 | Receiver | Thiệp mẫu: đề xuất giờ khác + đề xuất kèo khác → thiệp ghi 'đề xuất', ẩn nút thêm lịch | ✅ | ✅ | Đã gửi đề xuất cho Minh |
+| R11 | Receiver | Thiệp 'để người nhận chọn giờ': hiện lịch ngay, chọn xong mới cho Tiếp | ✅ | ✅ |  |
+| R12 | Receiver | Link hỏng → màn 'thiệp không còn' | ✅ | ✅ |  |
+| R13 | Receiver | Không có lỗi JS / request lỗi trong luồng người nhận | ✅ | ✅ |  |
+| R14 | Receiver | Link dạng cũ (v1, base64 JSON) vẫn mở được | ✅ | ✅ |  |
+| Q01 | Manage | Thiệp của tôi: có thiệp vừa tạo + 1 phản hồi, mở xem phản hồi | ✅ | ✅ | 1 phản hồi |
+| Q02 | Layout | manage-list: không tràn ngang, không phần tử lòi khỏi màn | ✅ | ✅ |  |
+| Q03 | Manage | Tab Lịch mở ở tháng có lịch hẹn gần nhất, ngày hẹn được đánh dấu | ✅ | ✅ | 1 ngày có hẹn, lịch mở ở Tháng 11, 2026 |
+| Q04 | Layout | manage-cal: không tràn ngang, không phần tử lòi khỏi màn | ✅ | ⚠️ | Ô ngày trong lịch rộng 39–43px (lưới 7 cột trên 390px), cao 44px |
+| Q05 | Manage | Nút xem dữ liệu mẫu hiện 3 thiệp mẫu, mở được phản hồi | ✅ | ✅ |  |
+| Q06 | Manage | Trình duyệt mới: trạng thái trống có 1 hành động rõ ràng | ✅ | ✅ |  |
+| Q07 | Manage | Không có lỗi JS / request lỗi ở màn quản lý | ✅ | ✅ |  |
+| K01 | A11y | Bàn phím: Tab từ đầu trang tới nút Tạo thiệp, Enter mở màn tạo, focus hiện viền | ✅ | – |  |
+| S01 | Server | Bundle app.<hash>.js: nén brotli, cache 1 năm (immutable) | ✅ | – |  |
+| S02 | Server | CSS: nén, no-cache + ETag, lần sau trả 304 | ✅ | – |  |
+| S03 | Server | Đường dẫn ngoài thư mục cho phép bị chặn (404) | ✅ | – |  |
 
-Đánh giá UI mobile (390px, xem từng ảnh chụp): không màn nào bị tràn ngang, nút chính full-width, chữ không nhỏ hơn 11px, thiệp và vé nằm cân giữa màn. Chỗ cần sửa là các touch target dưới 44px kể trên.
+Đánh giá UI mobile: không màn nào tràn ngang. Mọi nút, link và tab đều cao ít nhất 44px. Chỉ còn ô ngày trong lịch rộng 39–43px: lưới 7 cột trên màn 390px không nới thêm được, nhưng chiều cao đã đủ 44px.
 
-## 3. Test 4G: có bị giật không?
-
-**Có.** Trên 4G + CPU chậm 4x, home và màn người nhận chạy khoảng 35–45 fps, và chỉ 47–60% số frame là mượt (≤ 20ms).
+## 4. Test 4G: trước và sau khi sửa
 
 ### Tải trang lần đầu (không cache)
 
-| Điều kiện | Server | Dung lượng tải | Hero hiện | FCP | LCP | CLS | Long task |
+| Điều kiện | Bản | Dung lượng | Hero hiện | FCP | LCP | CLS | Long task |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Không giới hạn | hiện tại (không nén) | 699KB | 1.5s | 0.97s | 1.17s | 0 | 1 (266ms) |
-| 4G | hiện tại (không nén) | 699KB | 2.7s | 0.82s | 2.13s | 0 | 5 (1347ms) |
-| 4G | có gzip | **249KB** | 2.6s | 0.74s | 1.85s | 0 | 5 (1247ms) |
-| 4G yếu | hiện tại (không nén) | 699KB | 4.3s | 1.51s | 3.88s | 0 | 8 (1584ms) |
-| 4G yếu | có gzip | **249KB** | **3.1s** | 0.89s | **2.54s** | 0 | 11 (1887ms) |
+| 4G | trước | 699KB | 2.7s | 0.82s | 2.13s | 0 | 5 (1347ms) |
+| 4G | **sau** | **229KB** | 2.5s | 0.80s | 2.10s | 0 | 4 (1404ms) |
+| 4G yếu | trước | 699KB | 4.3s | 1.51s | 3.88s | 0 | 8 (1584ms) |
+| 4G yếu | **sau** | **229KB** | **3.2s** | **0.85s** | **2.25s** | 0 | 3 (1035ms) |
 
-Các file nặng nhất: `app.<hash>.js` 246KB, `lottie_light.min.js` 165KB, `lottie/animations.js` 89KB, `app.css` 81KB.
+Ở 4G 9 Mbps, mạng không phải là nút thắt nên số gần như không đổi. Ở 4G yếu, việc nén cho khác biệt rõ.
 
-### Độ mượt theo từng thao tác (fps / p95 frame time ms / % frame mượt)
+### Độ mượt (fps / p95 frame ms / % frame mượt ≤ 20ms)
 
-| Thao tác | Không giới hạn | 4G + CPU 4x | 4G yếu + CPU 4x |
-| --- | --- | --- | --- |
-| Home: intro 4s đầu | 45 / 34 / 71% | 45 / 34 / 68% | 38 / 50 / 62% |
-| Home: đứng yên | 44 / 34 / 71% | 41 / 34 / 59% | 38 / 50 / 52% |
-| Home: vuốt cuộn | 56 / 33 / 93% | **36 / 50 / 54%** (15 long task) | 40 / 47 / 59% |
-| Người nhận: phong bì intro | 52 / 34 / 85% | 41 / 34 / 61% | 44 / 33 / 69% |
-| Người nhận: bấm tim mở thư | 55 / 33 / 92% | 35 / 50 / 49% | 31 / 67 / 43% |
-| Người nhận: chạm nút Không né | 59 / 17 / 99% | **27 / 117 / 34%** | 24 / 100 / 32% |
-| Người nhận: Đồng ý → bước giờ | 33 / 63 / 43% | 29 / 54 / 29% | 24 / 100 / 16% |
-| Create: chuyển bước | 43 / 50 / 66% | 37 / 50 / 69% | 47 / 34 / 83% |
-| Create: gõ lời mời | 59 / 17 / 99% | 40 / 50 / 64% | 42 / 34 / 63% |
-
-Chú ý: Chrome headless vẽ bằng CPU (không có GPU thật), nên số tuyệt đối sẽ tệ hơn điện thoại thật. Dùng các con số này để so các phương án với nhau, không phải để so với chuẩn 60fps.
-
-## 4. Nguyên nhân giật
-
-### Trace (4G, home đứng yên 3s + cuộn)
-
-Trên main thread: style recalc (`UpdateLayoutTree`) **~2960ms**, Layerize ~1170ms, Paint ~1130ms, Layout ~535ms. Toàn bộ JavaScript thì ít: GSAP tick ~290ms, `drift()` 17ms. Nghĩa là main thread bị ngốn bởi CSS animation và việc tạo/xóa DOM, không phải bởi logic JS.
-
-### A/B: tắt từng hiệu ứng (4G + CPU 4x, trung bình 2 lần chạy, % frame mượt)
-
-| Phương án | Home đứng yên | Home cuộn | Người nhận đứng yên |
-| --- | --- | --- | --- |
-| Bản gốc | 47–58% | 47–50% | 55–61% |
-| Tắt viền xoay `.glow-border` (`--a` conic-gradient) | 68% | 58% | 68% |
-| Tắt `backdrop-filter` | 59% | 56% | 50% |
-| Tắt shimmer chữ gradient | 57% | 57% | 67% |
-| Tắt `mix-blend-mode` + grain | 78% | 69% | 70% |
-| Tắt aurora | 68% | 65% | 51% |
-| Tắt lưới sàn `.floor` | 68% | 48% | 63% |
-| Tắt hạt bay + sao băng (`.drift`, `.shooting`) | 66% | 76% | 83% |
-| Tắt 70 ngôi sao twinkle (`.star`) | **78%** | **79%** | **90%** |
-| **Tắt toàn bộ animation nền `.bg`** | **96%** (57fps) | **96%** (57fps) | **99%** (59fps) |
-
-Kết luận: **thủ phạm chính là lớp nền `.bg`**. Trong đó nặng nhất là 70 thẻ `.star`, mỗi thẻ có một CSS animation vô hạn riêng và là một compositor layer riêng. Đứng thứ hai là `drift()`, cứ 420ms lại chèn một hạt mới có `text-shadow` vào DOM (cùng lúc có khoảng 25–40 hạt). Lưới sàn, aurora và blend mode mỗi thứ góp thêm một phần nhỏ. Viền xoay `.glow-border` và `backdrop-filter` chỉ là nguyên nhân phụ.
-
-## 5. Lỗi và cải tiến
-
-Không tìm thấy lỗi chức năng nào. Các mục dưới đây đều có test hoặc số đo làm bằng chứng.
-
-| # | Mức | Vấn đề | Bằng chứng | Đề xuất |
+| Thao tác | 4G trước | 4G **sau** | 4G yếu trước | 4G yếu **sau** |
 | --- | --- | --- | --- | --- |
-| 1 | Cao | Giật trên điện thoại tầm trung / 4G | Mục 3–4: 47–60% frame mượt, tắt nền thì lên 96–99% | Gộp 70 ngôi sao thành 2–3 lớp tĩnh (nền `radial-gradient`) rồi chỉ nhấp nháy opacity cả lớp; giảm `drift` trên mobile (ví dụ 1.2s một hạt, tối đa khoảng 10 hạt, bỏ `text-shadow`); hoặc giảm hiệu ứng khi `!HN.fine` hay `navigator.hardwareConcurrency <= 4` |
-| 2 | Trung bình | Server không nén, còn bundle có hash cũng bị `Cache-Control: no-cache` | 699KB → 249KB khi gzip; 4G yếu: hero 4.3s → 3.1s, LCP 3.9s → 2.5s | Nén gzip/brotli trong `server/index.mjs` (hoặc nén sẵn lúc build); `app.<hash>.js` dùng `max-age=31536000, immutable`; font/lottie cũng cache dài |
-| 3 | Trung bình | Long task lúc load trên CPU chậm | 4G: 5 long task, tổng ~1.3s; 4G yếu: 8–11 long task, ~1.6–1.9s | Trace riêng để biết task nào (parse bundle 246KB, lottie 165KB + 89KB JSON, intro). Lottie đã được nạp lúc idle, có thể hoãn thêm tới khi có tương tác đầu tiên |
-| 4 | Trung bình | Né nút Không và Đồng ý → bước giờ bị khựng trên 4G | `recvNo` 27fps, p95 117ms, 7 long task (660ms); `recvYes` 29% frame mượt | Sửa #1 trước rồi đo lại; nếu vẫn chậm thì trace riêng `runaway.js` (`spot()`) |
-| 5 | Thấp | Viền xoay `.glow-border` animate `--a` (custom property) nên bị repaint mỗi frame; trên các panel create/recv/doc-card lại không có `pauseOffscreen` | A/B: home đứng yên 58% → 68% | Xoay bằng `transform: rotate` trên một pseudo-element vuông (chạy được trên compositor), hoặc chỉ xoay khi card đang hiện |
-| 6 | Thấp | Lá thư bay trên bản đồ hành trình animate `left` (layout mỗi frame), trái với rule motion của skill hennha-ui | `js/screens/home.js` `initJourney`; trace có Layout ~535ms | Đổi sang `x` (transform) theo phần trăm độ rộng track |
-| 7 | Thấp | Touch target < 44px trên mobile | H02, C05, C08, Q02: logo 24px, nút EN 34px, link footer 22px, stepper 36px, ô ngày 38px, "Xem phản hồi" 28px, Copy/Mở 38px | Tăng `min-height: 44px` / padding cho các nút này; link footer thêm padding dọc |
-| 8 | Thấp | Nút "Tạo thiệp" dính đáy hiện trễ khoảng 1 chiều cao topbar | H05: CTA của hero đã nằm dưới topbar mà vẫn được tính là đang hiện | Thêm `rootMargin: "-70px 0px 0px 0px"` (topbar cao 69px trên mobile) cho observer trong `initStickyCta` |
-| 9 | Thấp | Tab Lịch mở ở tháng hiện tại dù mọi lịch hẹn nằm ở tháng sau, nên nhìn vào thấy trống | Q03 | Mở lịch ở tháng của lịch hẹn gần nhất sắp tới |
-| 10 | Thấp | Toast chỉ được ẩn bằng `translateY(140px)` nên lộ ra trong ảnh full-page, hoặc khi viewport cao thêm | Ảnh chụp full-page có viên pill rỗng ở giữa màn | Thêm `visibility: hidden` lúc ẩn, `visible` khi có `.show` |
-| 11 | Ý tưởng | Từ lúc bấm tim tới khi câu hỏi hiện mất 2.7s (2.3s đầu là animation mở thư + giữ 0.9s); trên máy chậm còn lâu hơn | Đo ổn định qua 6 lần bấm | Cân nhắc rút thời gian giữ 0.9s, hoặc cho chạm lần nữa để bỏ qua |
-| 12 | Ý tưởng | Ô tên bị gạch đỏ chính tả với tên tiếng Việt | Ảnh mobile-create-1 | `spellcheck="false"` cho `#nameFrom`, `#nameTo`, `#signName` |
+| Home: intro 4s đầu | 45 / 34 / 68% | 59 / 17 / **97%** | 38 / 50 / 62% | 58 / 17 / **97%** |
+| Home: đứng yên | 41 / 34 / 59% | 59 / 17 / **99.6%** | 38 / 50 / 52% | 60 / 17 / **99.6%** |
+| Home: vuốt cuộn | 36 / 50 / 54% | 58 / 17 / **97%** | 40 / 47 / 59% | 60 / 17 / **99%** |
+| Người nhận: phong bì intro | 41 / 34 / 61% | 59 / 17 / **99%** | 44 / 33 / 69% | 59 / 17 / **98%** |
+| Người nhận: bấm tim mở thư | 35 / 50 / 49% | 53 / 33 / **93%** | 31 / 67 / 43% | 50 / 33 / **88%** |
+| Người nhận: né nút Không | 27 / 117 / 34% | 60 / 17 / **99%** | 24 / 100 / 32% | 60 / 17 / **100%** |
+| Người nhận: Đồng ý → bước giờ | 29 / 54 / 29% | 49 / 33 / **85%** | 24 / 100 / 16% | 51 / 33 / **89%** |
+| Create: chuyển bước | 37 / 50 / 69% | 57 / 17 / **98%** | 47 / 34 / 83% | 57 / 17 / **96%** |
+| Create: gõ lời mời | 40 / 50 / 64% | 59 / 17 / **100%** | 42 / 34 / 63% | 59 / 17 / **99%** |
 
-## 6. Phạm vi chưa test
+Lưu ý về độ tin cậy:
+- Cùng một bản code, kết quả giữa các lượt lệch nhau 5–10 điểm; ví dụ ở lượt A/B cuối, home đứng yên chỉ đo được 90% và lúc cuộn 82%.
+- Lượt A/B cuối đó còn cho kết quả *tắt* viền xoay lại tệ hơn *để nguyên*. Về nhân quả thì không thể xảy ra, nên lượt này đã bị loại vì máy đang bận.
+- Chrome headless vẽ bằng CPU, nên số tuyệt đối sẽ khác so với điện thoại thật.
 
-- Điện thoại thật (Safari iOS, GPU thật). Số liệu ở trên lấy từ Chrome giả lập.
-- Đăng nhập Google (đang tắt) và lưu thiệp lên Drive (`/api/invites` chỉ là stub).
-- Hộp chia sẻ thật của hệ điều hành (`navigator.share` được giả lập để ghi lại dữ liệu), cũng như nội dung file `.ics` tải về.
+## 5. Nguyên nhân giật và cách đã sửa
+
+A/B vòng 1 (4G + CPU 4x): tắt toàn bộ animation nền thì home lên 96–99%. Riêng 70 ngôi sao là phần nặng nhất: chỉ tắt sao thôi đã tăng từ 47% lên 78%.
+
+Sau khi sửa phần nền, A/B vòng 2 (chờ tải xong, trung bình 3 lần) tìm ra thủ phạm còn lại:
+
+| Phương án (vòng 2) | Home đứng yên | Home cuộn | Người nhận |
+| --- | --- | --- | --- |
+| Sau khi sửa nền (base) | 73% | 94% | 94% |
+| + viền xoay `steps(60)` trên màn cảm ứng | **97.5%** | 90% | **97%** |
+| Tắt hẳn viền xoay (chỉ để so sánh) | 99.6% | 99% | 99% |
+
+Trace cho thấy phần lớn thời gian main thread vẫn nằm ở style recalc và paint chứ không phải JS (GSAP tick khoảng 450ms trong cửa sổ đo).
+
+## 6. Lỗi và cải tiến: trạng thái
+
+| # | Mức | Vấn đề | Đã làm | Kết quả |
+| --- | --- | --- | --- | --- |
+| 1 | Cao | Giật trên điện thoại / 4G do animation nền | Gom 70 ngôi sao vào 4 lớp, mỗi lớp nhấp nháy opacity cả lớp (4 animation thay vì 70). Trên màn cảm ứng, hạt bay thưa hơn (1.1s/hạt, tối đa 12 hạt) | ✅ Mục 4 |
+| 1b | Cao | Viền xoay `.glow-border` vẽ lại cả card mỗi frame | Trên màn cảm ứng, viền xoay theo `steps(60)` (khoảng 12 lần vẽ/giây); desktop giữ nguyên. Thêm `pauseOffscreen` cho panel ở màn tạo, người nhận và các trang chữ | ✅ 73% → 97.5%. Đánh đổi có chủ ý: trên điện thoại glow xoay hơi "tích tắc" |
+| 2 | Trung bình | Server không nén; bundle có hash cũng bị `no-cache` | Thêm `server/static.mjs`: brotli/gzip (cache theo mtime); `app.<hash>.js` cache 1 năm `immutable`; font cache 30 ngày; các file còn lại `no-cache` + ETag/304. Phần chặn đường dẫn giữ nguyên như cũ | ✅ 699KB → 229KB; S01–S03 |
+| 3 | Trung bình | Long task lúc load trên CPU chậm | Đã trace: khoảng 850ms là chạy bundle + layout lần đầu của cả trang (riêng shaping chữ 360ms). Đã thử `content-visibility` cho các section dưới màn hình nhưng không thấy lợi rõ (nằm trong mức nhiễu), lại có rủi ro cắt glow/shadow, nên **không áp dụng** | ⏸ Còn lại |
+| 4 | Trung bình | Khựng khi né nút Không / bấm Đồng ý trên 4G | Hết sau khi sửa #1, #1b, #14 | ✅ 34% → 99%; 29% → 85% |
+| 5 | Thấp | `.glow-border` không dừng khi ra khỏi màn | Xem #1b | ✅ |
+| 6 | Thấp | Lá thư bay animate `left` (layout mỗi frame) | Đổi sang `x` (transform); đo độ rộng một lần, đo lại bằng `ResizeObserver` khi đổi kích thước | ✅ H13 |
+| 7 | Thấp | Touch target < 44px | Logo, link footer, pill, tab, nút nhỏ, link, stepper, ô ngày, nút đổi tháng, "Xem phản hồi" đều ≥ 44px trên màn ≤ 600px. Nút ngôn ngữ vốn đã có vùng chạm 44px nhờ `::after` | ✅ Còn bề ngang ô ngày (giới hạn của lưới 7 cột) |
+| 8 | Thấp | Sticky CTA hiện trễ | Observer trừ đi chiều cao topbar (`rootMargin`) | ✅ H05 |
+| 9 | Thấp | Tab Lịch mở ở tháng trống | `HN.calendar` nhận thêm tham số `month`; màn quản lý mở ở tháng của lịch hẹn gần nhất | ✅ Q03 |
+| 10 | Thấp | Toast chỉ ẩn bằng `translateY` | Thêm `opacity: 0` khi ẩn. Không dùng `visibility` để live region vẫn được đọc | ✅ H13 |
+| 11 | Ý tưởng | Thiệp mẫu: từ lúc bấm tim tới khi câu hỏi hiện mất 2.7s | Rút khoảng chờ sau khi thư mở từ 0.9s xuống 0.4s (thư mẫu trống, không có gì để đọc), ngang nhịp với màn người nhận | ✅ Khoảng 2.2s |
+| 12 | Ý tưởng | Tên tiếng Việt bị gạch đỏ chính tả | `spellcheck="false"` cho 3 ô nhập tên | ✅ |
+| 13 | **Cao (mới)** | Bấm "Tạo link" nhanh ngay khi bước 6 hiện: thiệp được lưu nhưng màn kẹt ở bước 6; bấm thêm lần nữa thì **ra 2 thiệp trùng** | `goStep` không bỏ qua lệnh chuyển bước khi animation đang chạy mà xếp hàng chạy sau. `publish()` không tạo lại nếu draft đã có thiệp | ✅ C15. Đã xác nhận test fail trên code cũ ("đếm thiệp: 2"), pass trên code mới |
+| 14 | Trung bình (mới) | Cuộn home khựng tới 500ms vì ảnh vé story 1080×1920 được mã hóa PNG đồng bộ (`toDataURL`), sau đó `shot()` còn decode ngược base64 | `ticketImage` trả về Blob qua `canvas.toBlob` (mã hóa ngoài main thread); `shot()` nhận thẳng Blob; home dùng object URL và thu hồi khi rời màn | ✅ Home cuộn trên 4G: 66% → 97% |
+| 15 | Thấp (mới) | Confetti của màn trước bay sang màn sau khi chuyển trang | Rời màn thì dừng Lottie confetti và gỡ các hạt | ✅ |
+| 16 | Trung bình (mới) | Lottie được dựng hết ngay khi thư viện tải xong, kể cả cái nằm trong bước đang ẩn hoặc dưới màn hình | Mỗi Lottie chỉ được dựng khi lần đầu lọt vào màn hình; thư viện vẫn tải lúc idle như cũ | ✅ |
+| 17 | Cải tiến | Link gửi thiệp dài 249–475 ký tự | Định dạng link v2 (mục 7) | ✅ Còn 62–247 ký tự |
+
+Đề xuất cho vòng sau:
+- Lúc chạm tim mở thư, hàm xử lý vẫn chặn khoảng 300ms trên CPU 4x, vì Lottie confetti được dựng ngay lúc chạm (trace: `open` khoảng 640ms, tính cả 30 hạt). Có thể dựng sẵn confetti lúc idle.
+- Mục #3 (long task lúc load).
+- Link ngắn qua server (khoảng 35 ký tự): cần người phụ trách quyết định có lưu tên + lời mời trên server hay không, theo Luật BVDLCN 91/2025.
+
+## 7. Link gửi thiệp v2
+
+Trước đây link chứa `base64(JSON)` của cả thiệp. Bản v2 đóng gói nhị phân:
+- Mã thiệp: 5 bit mỗi ký tự.
+- Ngày: 2 byte; giờ: 1 byte.
+- Kèo: bitmask.
+- Lời mời giữ nguyên theo mẫu thì chỉ lưu id mẫu và ngôn ngữ.
+- Chữ: 1 byte cho mỗi ký tự ASCII/tiếng Việt, 4 byte cho các ký tự khác (emoji...).
+
+Tương thích và an toàn:
+- Link v1 cũ vẫn mở được (R14). Cả 2 định dạng đều được đọc về cùng một dạng, rồi đi qua **cùng bộ kiểm tra** như trước, vì dữ liệu đến từ URL là dữ liệu không tin cậy.
+- Mã thiệp có ký tự ngoài bảng chữ cái, hoặc ngày nằm ngoài khoảng hỗ trợ, thì tự quay về v1.
+
+**Ràng buộc mới:** `HN.PLANS` và `HN.TEMPLATES` (trong `js/data.js`) cùng bảng ký tự trong `js/core.js` được đọc theo vị trí. Từ nay chỉ được **thêm vào cuối**, không xóa hay đổi thứ tự, nếu không link đã gửi sẽ bị hiểu sai. Ràng buộc này đã được ghi chú ngay trong code.
+
+| Thiệp | v1 | v2 |
+| --- | --- | --- |
+| Lời mời mẫu | 266 ký tự | 62 ký tự |
+| Tự viết "Cuối tuần đi cà phê với tớ nhé?" | 249 | 103 |
+| Tên 20 ký tự + lời mời 100 ký tự | 475 | 247 |
+
+## 8. Phạm vi chưa test
+
+- Điện thoại thật (Safari iOS, GPU thật).
+- Đăng nhập Google (đang tắt) và lưu thiệp lên Drive (`/api/invites` là stub).
+- Hộp chia sẻ thật của hệ điều hành; nội dung file `.ics`.
 - `prefers-reduced-motion`.
+- `server/index.mjs` chạy thật (cần Google key). Phần file tĩnh đã được test qua `server/static.mjs`, chính là module mà server thật import.

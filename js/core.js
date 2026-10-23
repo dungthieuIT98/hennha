@@ -218,8 +218,7 @@
   ].join("\r\n");
 
   /* ---------- invite <-> link (demo without backend: the invite rides in the URL hash) ---------- */
-  function b64e(str) {
-    const bytes = new TextEncoder().encode(str);
+  function b64e(bytes) {
     let bin = "";
     bytes.forEach((b) => { bin += String.fromCharCode(b); });
     return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -228,16 +227,131 @@
     if (typeof s !== "string" || !/^[A-Za-z0-9_-]{8,2400}$/.test(s)) return null;
     let t = s.replace(/-/g, "+").replace(/_/g, "/");
     while (t.length % 4) t += "=";
-    const bin = atob(t);
-    return new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+    return Uint8Array.from(atob(t), (c) => c.charCodeAt(0));
   }
-  HN.encodeInvite = (inv) => b64e(JSON.stringify({
+  // v1 (first links): base64url of JSON. Still read, and still written when v2 cannot hold the invite.
+  const encodeV1 = (inv) => b64e(new TextEncoder().encode(JSON.stringify({
     v: 1, c: inv.code, f: inv.from, t: inv.to || "", m: inv.message,
     tm: inv.timeMode === "fixed" ? 1 : 0, d: inv.date || "", h: inv.hour ?? -1, i: inv.minute ?? -1, p: inv.plans,
-  }));
+  })));
+
+  /* v2 (23/10): packed bytes, about 4x shorter than v1 with a template message and 2x with a typed one.
+     [flags] [code: length, then 5 bits a char] [fixed time only: 2 bytes days since 2024-01-01, 1 byte half-hour slot]
+     [plans: byte count, then a bitmask over HN.PLANS] [from] [to] [message, or the HN.TEMPLATES index]
+     Text is 1 byte a char from TEXT_CHARS (ASCII + Vietnamese letters); any other code point is 0xFF + 3 bytes.
+     HN.PLANS, HN.TEMPLATES, TEXT_CHARS and CODE_CHARS are read by position: only ever append to them. */
+  const V2 = 2, FIXED = 0x10, TEMPLATE = 0x20, TEMPLATE_EN = 0x40, ESC = 0xff, EPOCH = Date.UTC(2024, 0, 1), DAY = 864e5;
+  const CODE_CHARS = "abcdefghijkmnpqrstuvwxyz23456789";
+  const VI_CHARS = "àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ";
+  const TEXT_CHARS = [...Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)), ...VI_CHARS, ...VI_CHARS.toUpperCase()];
+  const TEXT_INDEX = new Map(TEXT_CHARS.map((ch, i) => [ch, i]));
+  const templateText = (lang, i) => (HN.TEMPLATES[i] && HN.I18N[lang] && HN.I18N[lang]["tpl." + HN.TEMPLATES[i].id]) || null;
+
+  function encodeV2(inv) {
+    const out = [];
+    const text = (s) => {
+      // a half emoji (maxlength can cut a pair) becomes U+FFFD, as TextEncoder did for v1
+      const chars = [...HN.clean(s).replace(/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g, "�")];
+      if (chars.length > 255) throw new Error("text");
+      out.push(chars.length);
+      chars.forEach((ch) => {
+        const i = TEXT_INDEX.get(ch);
+        if (i != null) { out.push(i); return; }
+        const cp = ch.codePointAt(0);
+        out.push(ESC, cp >> 16, (cp >> 8) & 255, cp & 255);
+      });
+    };
+    const code = String(inv.code);
+    if (!code.length || code.length > 16 || [...code].some((ch) => !CODE_CHARS.includes(ch))) throw new Error("code");
+    // a template left as it is (in either language) travels as its index
+    const to = HN.clean(inv.to);
+    let tpl = -1, en = false;
+    for (let i = 0; to && tpl < 0 && i < HN.TEMPLATES.length; i++) {
+      for (const lang of ["vi", "en"]) {
+        const t = templateText(lang, i);
+        if (t && HN.clean(HN.renderTemplate(t, to)) === HN.clean(inv.message)) { tpl = i; en = lang === "en"; break; }
+      }
+    }
+    const fixed = inv.timeMode === "fixed";
+    out.push(V2 | (fixed ? FIXED : 0) | (tpl >= 0 ? TEMPLATE : 0) | (en ? TEMPLATE_EN : 0));
+    out.push(code.length);
+    let acc = 0, bits = 0;
+    for (const ch of code) {
+      acc = (acc << 5) | CODE_CHARS.indexOf(ch); bits += 5;
+      while (bits >= 8) { bits -= 8; out.push((acc >> bits) & 255); acc &= (1 << bits) - 1; }
+    }
+    if (bits) out.push((acc << (8 - bits)) & 255);
+    if (fixed) {
+      const [y, m, d] = String(inv.date).split("-").map(Number);
+      const days = Math.round((Date.UTC(y, m - 1, d) - EPOCH) / DAY);
+      if (!(days >= 0 && days < 65536) || !(inv.minute === 0 || inv.minute === 30)) throw new Error("time");
+      out.push(days >> 8, days & 255, inv.hour * 2 + inv.minute / 30);
+    }
+    const mask = new Array(Math.ceil(HN.PLANS.length / 8)).fill(0);
+    (inv.plans || []).forEach((id) => { const i = HN.PLANS.findIndex((p) => p.id === id); if (i >= 0) mask[i >> 3] |= 1 << (i & 7); });
+    out.push(mask.length, ...mask);
+    text(inv.from);
+    text(inv.to || "");
+    if (tpl >= 0) out.push(tpl); else text(inv.message);
+    return b64e(out);
+  }
+
+  // reads a v2 link into the v1 object shape, so both formats go through the same checks in HN.decodeInvite
+  function readV2(b) {
+    let k = 0;
+    const byte = () => { if (k >= b.length) throw new Error("short"); return b[k++]; };
+    const text = () => {
+      let s = "";
+      for (let n = byte(); n > 0; n--) {
+        const i = byte();
+        if (i !== ESC) { if (i >= TEXT_CHARS.length) throw new Error("char"); s += TEXT_CHARS[i]; continue; }
+        const cp = (byte() << 16) | (byte() << 8) | byte();
+        if (cp > 0x10ffff || (cp >= 0xd800 && cp <= 0xdfff)) throw new Error("char");
+        s += String.fromCodePoint(cp);
+      }
+      return s;
+    };
+    const flags = byte();
+    if ((flags & 0x0f) !== V2) return null;
+    const len = byte();
+    if (!len || len > 16) return null;
+    let code = "", acc = 0, bits = 0;
+    for (let n = Math.ceil((len * 5) / 8); n > 0; n--) {
+      acc = (acc << 8) | byte(); bits += 8;
+      while (bits >= 5 && code.length < len) { bits -= 5; code += CODE_CHARS[(acc >> bits) & 31]; acc &= (1 << bits) - 1; }
+    }
+    let d = "", h = -1, i = -1;
+    if (flags & FIXED) {
+      d = new Date(EPOCH + ((byte() << 8) | byte()) * DAY).toISOString().slice(0, 10);
+      const slot = byte();
+      h = slot >> 1; i = (slot & 1) * 30;
+    }
+    const p = [];
+    for (let n = byte(), j = 0; j < n; j++) {
+      const m = byte();
+      for (let bit = 0; bit < 8; bit++) if (m & (1 << bit) && HN.PLANS[j * 8 + bit]) p.push(HN.PLANS[j * 8 + bit].id);
+    }
+    const f = text(), t = text();
+    let msg;
+    if (flags & TEMPLATE) {
+      const tpl = templateText(flags & TEMPLATE_EN ? "en" : "vi", byte());
+      if (!tpl || !t) return null;
+      msg = HN.renderTemplate(tpl, t);
+    } else msg = text();
+    if (k !== b.length) return null;
+    return { v: 1, c: code, f, t, m: msg, tm: flags & FIXED ? 1 : 0, d, h, i, p };
+  }
+
+  // v2 when it can hold the invite; an invite it cannot pack (an odd code, a date out of range) falls back to v1
+  HN.encodeInvite = (inv) => { try { return encodeV2(inv); } catch (_) { return encodeV1(inv); } };
   HN.decodeInvite = (s) => {
     let o;
-    try { const txt = b64d(s); if (!txt) return null; o = JSON.parse(txt); } catch (_) { return null; }
+    try {
+      const bytes = b64d(s);
+      if (!bytes || !bytes.length) return null;
+      // v1 is JSON, so its first byte is "{"; v2 starts with its flags byte
+      o = bytes[0] === 0x7b ? JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) : readV2(bytes);
+    } catch (_) { return null; }
     if (!o || typeof o !== "object" || o.v !== 1) return null;
     const str = (x) => (typeof x === "string" ? x : "");
     const from = HN.clean(str(o.f)), to = HN.clean(str(o.t)), message = HN.clean(str(o.m));
@@ -258,7 +372,7 @@
   // key is an encoded invite or "demo", optionally followed by "/preview"
   HN.inviteUrl = (key) => HN.baseUrl() + "#/n/" + key;
   HN.randomCode = (n = 8) => {
-    const a = "abcdefghijkmnpqrstuvwxyz23456789";
+    const a = CODE_CHARS;
     const r = new Uint32Array(n);
     crypto.getRandomValues(r);
     let s = "";

@@ -11,6 +11,7 @@ Runs the app like a user and writes a report. Scripts live in `scripts/`; nothin
 | --- | --- | --- |
 | `scripts/serve.mjs` | Serves `dist/` through the real static code (`server/static.mjs`: allowlist, brotli/gzip, cache headers, ETag), stubs `/api/*` so no Google keys are needed | — |
 | `scripts/e2e.mjs` | ~50 user test cases per profile (`desktop` 1280×800, `mobile` 390×844 touch, DPR 3), layout audit per screen, motion checks (H13), server headers (S01–S03), screenshots | `<out>/e2e.json`, `<out>/shots/*.png` (`FAIL-*.png` on failure) |
+| `scripts/link-codec.cjs` | No browser: runs the real `data.js`/`strings.js`/`core.js` and tests the invite link codec (3000 random round trips, old v1 links, 20000 fuzzed links, sample lengths) | prints `ALL OK` or the failures |
 | `scripts/perf.mjs` | Phone profile under no throttle, 4G and slow 4G (both with CPU 4×): cold load (FCP, LCP, CLS, bytes), frame stats per scenario, trace breakdown, A/B with one effect off. `--only load|frames|trace|ab` runs one part, `--ab base,noStars` picks variants, `--base-gzip <url>` adds a second server to compare loads | `<out>/perf.json` (`perf-<part>.json` with `--only`) |
 
 ## Steps
@@ -18,14 +19,15 @@ Runs the app like a user and writes a report. Scripts live in `scripts/`; nothin
 1. Build: `node tools/build.mjs`. Test `dist/`, that is what gets deployed.
 2. Install Playwright in the scratchpad, never in the project: `npm i playwright-core` in `<scratch>/pw`. Use the system Chrome (`C:/Program Files/Google/Chrome/Application/chrome.exe`, override with `--chrome`).
 3. Start the server as a background task: `node .claude/skills/hennha-ui-test/scripts/serve.mjs --dir dist --port 8765`. It exits with `cannot listen on <port>` when something else holds the port: pick another port, and check with `curl -I` that the headers are this server's before trusting numbers.
-4. Functional + layout: `PW_DIR=<scratch>/pw node .claude/skills/hennha-ui-test/scripts/e2e.mjs --base http://127.0.0.1:8765/ --out <scratch>/run`. Add `--profiles mobile` to run one profile.
-5. Smoothness: `PW_DIR=<scratch>/pw node .claude/skills/hennha-ui-test/scripts/perf.mjs --base http://127.0.0.1:8765/ --out <scratch>/perf` (10–15 minutes; `--skip-ab` saves half). Run it in the background and do not run e2e at the same time, it skews the numbers.
-6. Look at the screenshots, especially `mobile-*.png` and every `FAIL-*.png`, before deciding whether a failure is the app or the test.
-7. Write the report (below), then stop the server task.
+4. Link codec, whenever `js/core.js`, `js/data.js` (PLANS/TEMPLATES) or the `tpl.*` strings change: `node .claude/skills/hennha-ui-test/scripts/link-codec.cjs .`
+5. Functional + layout: `PW_DIR=<scratch>/pw node .claude/skills/hennha-ui-test/scripts/e2e.mjs --base http://127.0.0.1:8765/ --out <scratch>/run`. Add `--profiles mobile` to run one profile.
+6. Smoothness: `PW_DIR=<scratch>/pw node .claude/skills/hennha-ui-test/scripts/perf.mjs --base http://127.0.0.1:8765/ --out <scratch>/perf` (10–15 minutes; `--skip-ab` saves half). Run it in the background and do not run e2e at the same time, it skews the numbers.
+7. Look at the screenshots, especially `mobile-*.png` and every `FAIL-*.png`, before deciding whether a failure is the app or the test.
+8. Write the report (below), then stop the server task.
 
 ## Reading the results
 
-- A FAIL is only a bug once it reproduces. Rerun the single flow in a small script (loop it 5–8 times, dump state with `page.evaluate`). Long animations are normal here: tapping the heart to seeing the question takes about 2.7 s, so do not wait less than 8 s for step changes.
+- A FAIL is only a bug once it reproduces. Rerun the single flow in a small script (loop it 5–8 times, dump state with `page.evaluate`). Long animations are normal here: tapping the heart to seeing the question takes 2–3 s, so do not wait less than 8 s for step changes.
 - `opacity: 0` still counts as "visible" to Playwright. Wait on a class (`.active`, `.ready`, `.show`) or check `getComputedStyle(...).opacity`.
 - On phones only the language button that is not active is shown; set `locale: "vi-VN"` on the context or the VI/EN clicks hang.
 - Layout notes in a PASS row (`touch target <44px`, `chữ <11px`) are improvements, not failures. List them in the report.

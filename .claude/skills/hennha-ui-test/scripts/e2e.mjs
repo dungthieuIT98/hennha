@@ -317,6 +317,8 @@ async function create(page, errs) {
     await page.locator('.cstep[data-step="7"].active #link').waitFor({ timeout: 8000 });
     link = (await page.textContent("#link")).trim();
     expect(link.startsWith(BASE + "#/n/"), "link lạ: " + link);
+    // packed v2 link: the typed message above fits in about 75 characters after "#/n/"
+    expect(link.length - (BASE + "#/n/").length <= 90, `link dài ${link.length} ký tự, chưa được rút gọn`);
     await page.click("#copyLink");
     await page.locator("#toast.show").waitFor({ timeout: 2000 });
     const clip = await page.evaluate(() => navigator.clipboard.readText()).catch(() => "");
@@ -440,6 +442,14 @@ async function receiver(page, link, errs) {
     await page.locator("#planOne").waitFor({ state: "visible" });
     await page.click("#planOk");
     await page.locator('.rstep[data-step="5"].active').waitFor();
+  });
+  await test("R14", "Receiver", "Link dạng cũ (v1, base64 JSON) vẫn mở được", async () => {
+    const d = new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10);
+    const v1 = Buffer.from(JSON.stringify({ v: 1, c: "k3x9m2pq", f: "Minh", t: "Thảo", m: "Link cũ vẫn chạy chứ?", tm: 1, d, h: 19, i: 0, p: ["cafe"] })).toString("base64url");
+    await page.goto(BASE + "#/n/" + v1, { waitUntil: "load" });
+    await page.locator("#love .nheart").waitFor({ state: "visible", timeout: 8000 });
+    const t = await page.locator("#askTitle").textContent();
+    expect(t.includes("Link cũ vẫn chạy chứ?"), "nội dung sai: " + t);
   });
   await test("R12", "Receiver", "Link hỏng → màn 'thiệp không còn'", async () => {
     await page.goto(BASE + "#/n/khong-hop-le", { waitUntil: "load" });
