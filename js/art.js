@@ -227,6 +227,7 @@
     g.textAlign = "center"; g.fillStyle = "rgba(255,255,255,.9)"; g.font = "800 40px " + DISPLAY;
     // đặt cao hơn đáy ảnh: khi đăng story, thanh trả lời của Instagram/Facebook che khoảng 10% phía dưới
     g.fillText(HN.t("tk.madeAt", { domain: HN.DOMAIN }), W / 2, H - 250);
-    return c.toDataURL("image/png");
+    // a PNG Blob: toBlob encodes off the main thread, toDataURL blocked it for hundreds of ms on slow phones
+    return new Promise((ok, fail) => c.toBlob((b) => (b ? ok(b) : fail(new Error("toBlob failed"))), "image/png"));
   };
 })();

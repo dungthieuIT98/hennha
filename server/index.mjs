@@ -1,16 +1,15 @@
 // DiDateHong server: serves the static site, handles Google sign-in, keeps accounts in SQLite.
 // Usage: node --env-file=.env server/index.mjs   (Node 22.13+, no dependencies)
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
-import { realpathSync, statSync } from "node:fs";
 import { timingSafeEqual } from "node:crypto";
-import { dirname, extname, relative, resolve, sep } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.mjs";
 import { openDb, SESSION_MS, ATTEMPT_MS } from "./db.mjs";
 import { authUrl, fetchProfile, isCode, isState, newState, newVerifier } from "./google.mjs";
 import { makeDrive } from "./drive.mjs";
 import { makeInviteValidator } from "./invite.mjs";
+import { makeStatic } from "./static.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const cfg = loadConfig(root);
@@ -157,36 +156,9 @@ async function saveInvite(req, res) {
   return json(res, 201, { saved: true });
 }
 
-/* ---------- static files (allowlist, canonical path must stay under the root) ---------- */
-const MIME = {
-  ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
-  ".woff2": "font/woff2", ".png": "image/png", ".svg": "image/svg+xml", ".txt": "text/plain; charset=utf-8",
-};
-const ALLOWED_DIRS = new Set(["css", "fonts", "img", "js", "vendor", "lottie"]);
-const BUNDLE = /^app\.[a-f0-9]{10}\.js$/;
-let staticReal;
-try { staticReal = realpathSync(cfg.staticDir); } catch (_) { console.error("config: STATIC_DIR does not exist"); process.exit(1); }
-
-function staticPath(pathname) {
-  let rel;
-  try { rel = decodeURIComponent(pathname); } catch (_) { return null; }
-  if (rel.includes("\0")) return null;
-  if (rel === "/") rel = "/index.html";
-  let real;
-  try { real = realpathSync(resolve(staticReal, "." + rel)); } catch (_) { return null; }
-  if (!real.startsWith(staticReal + sep) || !statSync(real).isFile()) return null;
-  const parts = relative(staticReal, real).split(sep);
-  const ok = parts.length === 1 ? parts[0] === "index.html" || BUNDLE.test(parts[0]) : ALLOWED_DIRS.has(parts[0]);
-  return ok && MIME[extname(real).toLowerCase()] ? real : null;
-}
-
-async function serveStatic(req, res, pathname) {
-  if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, "Method not allowed", { Allow: "GET, HEAD" });
-  const file = staticPath(pathname);
-  if (!file) return send(res, 404, "Not found", { "Content-Type": "text/plain; charset=utf-8" });
-  const body = await readFile(file);
-  send(res, 200, req.method === "HEAD" ? "" : body, { "Content-Type": MIME[extname(file).toLowerCase()], "Content-Length": body.length, "Cache-Control": "no-cache" });
-}
+/* ---------- static files (allowlist, canonical path must stay under the root; see static.mjs) ---------- */
+let serveStatic;
+try { serveStatic = makeStatic(cfg.staticDir, send); } catch (_) { console.error("config: STATIC_DIR does not exist"); process.exit(1); }
 
 /* ---------- server ---------- */
 const server = createServer(async (req, res) => {

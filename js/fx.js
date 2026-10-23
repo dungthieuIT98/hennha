@@ -34,23 +34,33 @@
     loadLottie().then(() => { if (visit === HN.visit()) mount(root); }, () => {});
   };
   function mount(root) {
-    const loops = new Map();
-    $$("[data-lottie]", root).forEach((n) => {
-      if (n.dataset.mounted || !window.LOTTIE[n.dataset.lottie]) return;
-      n.dataset.mounted = "1";
-      const loop = n.dataset.loop === "1";
-      const a = HN.lottie(n, n.dataset.lottie, loop, n.dataset.fit);
-      if (reduce) a.goToAndStop(Math.floor(a.totalFrames / 3), true);
-      else if (loop && "IntersectionObserver" in window) loops.set(n, a);
-      else a.play();
+    const nodes = $$("[data-lottie]", root).filter((n) => !n.dataset.mounted && window.LOTTIE[n.dataset.lottie]);
+    nodes.forEach((n) => { n.dataset.mounted = "1"; });
+    const make = (n) => {
+      const a = HN.lottie(n, n.dataset.lottie, n.dataset.loop === "1", n.dataset.fit);
       HN.onLeave(() => a.destroy());
-    });
-    if (!loops.size) return;
+      return a;
+    };
+    if (reduce || !("IntersectionObserver" in window)) {
+      nodes.forEach((n) => { const a = make(n); if (reduce) a.goToAndStop(Math.floor(a.totalFrames / 3), true); else a.play(); });
+      return;
+    }
+    // each animation is built the first time it comes into view: hidden steps and below-the-fold ones cost nothing
+    // until then. Loops pause off-screen; one-shots play once, on first sight.
+    const anims = new Map();
     const io = new IntersectionObserver((entries) => entries.forEach((e) => {
-      const a = loops.get(e.target);
+      let a = anims.get(e.target);
+      if (!a) {
+        if (!e.isIntersecting) return;
+        a = make(e.target);
+        anims.set(e.target, a);
+        a.play();
+        if (e.target.dataset.loop !== "1") io.unobserve(e.target);
+        return;
+      }
       if (e.isIntersecting) a.play(); else a.pause();
     }));
-    loops.forEach((_, n) => io.observe(n));
+    nodes.forEach((n) => io.observe(n));
     HN.onLeave(() => io.disconnect());
   }
 
@@ -165,16 +175,23 @@
     if (box && window.LOTTIE && window.LOTTIE.confetti) {
       box.style.left = x + "px";
       box.style.top = y + "px";
+      box.style.visibility = "";
       if (!burstAnim) burstAnim = HN.lottie(box, "confetti", false);
       burstAnim.goToAndPlay(0, true);
     }
-    const layer = $("#fx");
+    const layer = $("#fx"), bits = [];
+    // the fx layer outlives the screen: leaving it ends this celebration instead of raining on the next screen
+    HN.onLeave(() => {
+      if (burstAnim && box) { burstAnim.stop(); box.style.visibility = "hidden"; }
+      bits.forEach((b) => { gsap.killTweensOf(b); b.remove(); });
+    });
     for (let i = 0; i < n; i++) {
       const s = el("span", "particle", BURST_CHARS[i % BURST_CHARS.length]);
       s.style.left = x + "px";
       s.style.top = y + "px";
       s.style.color = BURST_COLORS[i % BURST_COLORS.length];
       layer.append(s);
+      bits.push(s);
       const a = Math.random() * Math.PI * 2, d = gsap.utils.random(70, 240);
       const dx = Math.cos(a) * d, dy = Math.sin(a) * d - 50;
       gsap.timeline({ onComplete: () => s.remove() })
@@ -192,33 +209,38 @@
     const sky = $("#sky");
     if (!sky) return;
     const rand = (a, b) => a + Math.random() * (b - a);
-    // each twinkling star is its own compositor layer, so keep the count modest
+    // stars sit still in 4 layers and each layer twinkles as a whole: 4 animations instead of one per star,
+    // which was the biggest per-frame cost on slow phones
+    const layers = Array.from({ length: 4 }, () => sky.appendChild(el("div", "star-layer")));
     for (let i = 0; i < 70; i++) {
       const s = el("span", "star");
       const size = rand(1, 2.6);
       s.style.width = s.style.height = size + "px";
       s.style.left = rand(0, 100) + "vw";
       s.style.top = Math.pow(Math.random(), 1.5) * 90 + "vh";
-      s.style.animationDuration = rand(2, 6) + "s";
-      s.style.animationDelay = -rand(0, 6) + "s";
+      s.style.opacity = rand(0.45, 1).toFixed(2);
       if (size > 2.1) s.classList.add("big");
-      sky.append(s);
+      layers[i % layers.length].append(s);
     }
     if (reduce) return;
+    // touch screens are mostly phones: fewer drifting bits, and a cap on how many are alive at once
+    const DRIFT_EVERY = fine ? 420 : 1100, DRIFT_MAX = fine ? 36 : 12;
+    let drifting = 0;
     const COLORS = ["#ffffff", "#ffd6e7", "#ffd166", "#c4b5fd", "#a5f3fc"];
     const drift = () => {
-      if (document.hidden) return;
+      if (document.hidden || drifting >= DRIFT_MAX) return;
       const s = el("span", "drift", Math.random() < 0.3 ? "✦" : Math.random() < 0.2 ? "♥" : "•");
       s.style.left = rand(0, 100) + "vw";
       s.style.fontSize = rand(6, 14) + "px";
       s.style.color = COLORS[Math.floor(Math.random() * COLORS.length)];
       s.style.setProperty("--dx", rand(-60, 60) + "px");
       s.style.animationDuration = rand(10, 18) + "s";
-      s.addEventListener("animationend", () => s.remove());
+      s.addEventListener("animationend", () => { s.remove(); drifting--; });
+      drifting++;
       sky.append(s);
     };
-    for (let i = 0; i < 14; i++) setTimeout(drift, i * 150);
-    setInterval(drift, 420);
+    for (let i = 0; i < (fine ? 14 : 5); i++) setTimeout(drift, i * 150);
+    setInterval(drift, DRIFT_EVERY);
     (function shoot() {
       if (!document.hidden) {
         const s = el("span", "shooting");

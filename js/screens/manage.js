@@ -114,7 +114,9 @@
       const events = {};
       appts().forEach((a) => { events[a.date] = events[a.date] || { conflict: false }; if (conf[key(a)] > 1) events[a.date].conflict = true; });
       $("#qCal").replaceChildren();
-      HN.calendar($("#qCal"), { events, allowAll: true, selected: picked, onSelect(d) { picked = d; renderAppts(); } });
+      // open on the month of the next appointment, so a list that starts next month does not look empty
+      const next = appts().map((a) => a.date).filter((d) => HN.parseISO(d) >= HN.today()).sort()[0];
+      HN.calendar($("#qCal"), { events, allowAll: true, selected: picked, month: next ? HN.parseISO(next) : null, onSelect(d) { picked = d; renderAppts(); } });
       renderAppts();
     }
     function renderAppts() {

@@ -9,7 +9,9 @@
     const min = opts.min || HN.today();
     const max = opts.max || HN.addYears(HN.today(), 1);
     let selected = opts.selected || null;
-    let view = new Date((selected || min).getFullYear(), (selected || min).getMonth(), 1);
+    // opens on the selected day's month, else opts.month (any day in the month to show first), else the first allowed month
+    const start = selected || opts.month || min;
+    let view = new Date(start.getFullYear(), start.getMonth(), 1);
     host.classList.add("cal");
     function render(dir) {
       host.replaceChildren();
@@ -205,17 +207,9 @@
   // in-app browsers of chat and social apps block downloads; only a long-press or another browser works there
   const IN_APP = /FBAN|FBAV|FB_IAB|Instagram|Messenger|Zalo|Line\/|TikTok|musical_ly/i.test(navigator.userAgent);
   const FILE_NAME = "didatehong.png";
-  function dataUrlBlob(url) {
-    const [head, b64] = url.split(",");
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new Blob([bytes], { type: (head.match(/^data:([^;]+)/) || [])[1] || "image/png" });
-  }
-  // url: the image as a data: URL (HN.ticketImage). Phones get the system share sheet, which has "Save image";
+  // blob: the PNG from HN.ticketImage. Phones get the system share sheet, which has "Save image";
   // the file is prepared before the tap because Safari only opens the sheet straight from a tap.
-  HN.shot = (url) => {
-    const blob = dataUrlBlob(url);
+  HN.shot = (blob) => {
     const objUrl = URL.createObjectURL(blob);
     const file = typeof File === "function" ? new File([blob], FILE_NAME, { type: blob.type }) : null;
     const canShare = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));

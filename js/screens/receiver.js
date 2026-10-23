@@ -19,7 +19,8 @@
       HN.applyI18n(view);
       app.replaceChildren(view);
       gsap.fromTo(".gone > *", { y: 30, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.08, duration: 0.6, ease: "back.out(1.6)", clearProps: "transform,opacity" });
-      HN.loop(gsap.to(".gone .big-emoji", { y: -10, rotation: 8, duration: 1.4, yoyo: true, repeat: -1, ease: "sine.inOut" }));
+      const gone = gsap.to(".gone .big-emoji", { y: -10, rotation: 8, duration: 1.4, yoyo: true, repeat: -1, ease: "sine.inOut" });
+      HN.pauseOffscreen([[$(".gone", app), [HN.loop(gone)]]]);
       return;
     }
     const greet = inv.to || HN.t("you");
@@ -30,6 +31,7 @@
     let step = 1, busy = false, recorded = false;
     const ENTER = {};
 
+    HN.pauseOffscreen([[$(".recv-card", app), []]]);
     $("#askTitle").textContent = inv.message;
     $("#askFrom").textContent = HN.t("recv.letterFrom", { name: inv.from });
     HN.mountLotties(steps[0]);

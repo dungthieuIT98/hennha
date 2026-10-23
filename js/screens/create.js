@@ -27,7 +27,17 @@
     let d = HN.draft.get();
     let step = Math.min(Math.max(1, Number(d.step) || 1), 7);
     if (step === 7 && !d.published) step = 6;
-    let busy = false;
+    // busy while a step transition runs; a step asked for meanwhile waits for it instead of being dropped
+    // (a fast tap on "Create link" used to save the invite and then stay on step 6)
+    let busy = false, pending = null;
+    const visit = HN.visit();
+    const settle = () => {
+      busy = false;
+      const p = pending;
+      pending = null;
+      // skip it when the screen is gone or the step is already showing (a double tap on Next)
+      if (p != null && p !== step && visit === HN.visit()) goStep(p);
+    };
 
     const stepperHost = $("#stepper");
     const bar = el("div", "st-bar");
@@ -52,7 +62,7 @@
     }
 
     function goStep(n, animate = true) {
-      if (busy) return;
+      if (busy) { pending = n; return; }
       const prev = steps.find((s) => s.classList.contains("active"));
       const next = steps.find((s) => Number(s.dataset.step) === n);
       step = n;
@@ -62,10 +72,10 @@
         steps.forEach((s) => s.classList.toggle("active", s === next));
         if (ENTER[n]) ENTER[n]();
         if (animate) {
-          gsap.fromTo(next.children, { y: 24, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.04, duration: 0.45, ease: "power3.out", clearProps: "transform,opacity", onComplete: () => { busy = false; } });
+          gsap.fromTo(next.children, { y: 24, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.04, duration: 0.45, ease: "power3.out", clearProps: "transform,opacity", onComplete: settle });
           window.scrollTo({ top: 0, behavior: HN.reduce ? "auto" : "smooth" });
           HN.focusHeading(next);
-        } else busy = false;
+        } else settle();
       };
       busy = true;
       if (prev && prev !== next && animate) {
@@ -292,6 +302,8 @@
     })();
 
     function publish(plan) {
+      // one invite per draft, however many times the button is pressed
+      if (HN.draft.get().published) { goStep(7); return; }
       const inv = draftInvite(HN.randomCode(8));
       const enc = HN.encodeInvite(inv);
       if (!HN.decodeInvite(enc)) { HN.toast(HN.t("c6.missing")); return; }
@@ -342,6 +354,8 @@
     HN.feedbackBox($("#fb"), { where: "created" });
     $("#newBtn").addEventListener("click", () => { HN.draft.clear(); HN.render(); });
 
+    // the spinning glow border is a CSS loop: pause it whenever the panel is off-screen
+    HN.pauseOffscreen([[$(".panel", app), []]]);
     if (step >= 2) renderTemplates();
     goStep(step, false);
     if (step <= 4) gsap.fromTo($$(".cstep.active > *", app), { y: 24, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.05, duration: 0.5, ease: "power3.out", clearProps: "transform,opacity" });

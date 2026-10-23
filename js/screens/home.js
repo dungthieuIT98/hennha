@@ -55,7 +55,8 @@
       if (envBusy) return;
       envBusy = true;
       HN.burstAt(heart, 24);
-      const t = HN.openLove(env).to({}, { duration: 0.9 }).add(() => swap(envStage, stage, yes));
+      // the sample letter is empty, so a short beat after it opens is enough before the question
+      const t = HN.openLove(env).to({}, { duration: 0.4 }).add(() => swap(envStage, stage, yes));
       HN.onLeave(() => t.kill());
     });
 
@@ -124,6 +125,10 @@
     const dots = $$(".jmap .jdot"), labels = $$(".jmap b"), fill = $(".jline-fill"), flyer = $(".jflyer"), pin = $(".jpin");
     if (reduce) { gsap.set(flyer, { autoAlpha: 0 }); return null; }
     const STOPS = [12.5, 37.5, 62.5, 87.5];
+    // the flyer sits at the first stop (CSS left: 12.5%) and moves with x, never with left: measured once,
+    // and again only when the map changes width
+    const track = flyer.parentElement;
+    const toStop = (x) => () => ((x - STOPS[0]) / 100) * track.clientWidth;
     const pop = (k) => gsap.timeline()
       .to(dots[k], { scale: 1.2, opacity: 1, duration: 0.18, ease: "power2.out" })
       .to(dots[k], { scale: 1, duration: 0.45, ease: "back.out(3)" })
@@ -133,11 +138,11 @@
       .set(dots, { scale: 0.86, opacity: 0.45 })
       .set(labels, { opacity: 0.7 })
       .set(pin, { y: -28, autoAlpha: 0 })
-      .set(flyer, { left: STOPS[0] + "%", y: 0, rotation: 0, scale: 0.5, autoAlpha: 0 })
+      .set(flyer, { x: 0, y: 0, rotation: 0, scale: 0.5, autoAlpha: 0 })
       .to(flyer, { scale: 1, autoAlpha: 1, duration: 0.35, ease: "back.out(2)" })
       .add(pop(0), "-=0.1");
     STOPS.slice(1).forEach((x, i) => {
-      tl.to(flyer, { left: x + "%", duration: 0.8, ease: "power1.inOut" }, "+=0.3")
+      tl.to(flyer, { x: toStop(x), duration: 0.8, ease: "power1.inOut" }, "+=0.3")
         .to(flyer, { y: -14, rotation: 12, duration: 0.4, ease: "sine.out", yoyo: true, repeat: 1 }, "<")
         .to(fill, { clipPath: `inset(0 ${(100 * (2 - i)) / 3}% 0 0)`, duration: 0.8, ease: "power1.inOut" }, "<")
         .add(pop(i + 1));
@@ -149,6 +154,12 @@
       .to(dots, { scale: 0.86, opacity: 0.45, duration: 0.4 })
       .to(labels, { opacity: 0.7, duration: 0.4 }, "<")
       .to([fill, pin], { opacity: 0, duration: 0.4 }, "<");
+    if ("ResizeObserver" in window) {
+      let w = track.clientWidth;
+      const ro = new ResizeObserver(() => { if (track.clientWidth !== w) { w = track.clientWidth; tl.invalidate(); } });
+      ro.observe(track);
+      HN.onLeave(() => ro.disconnect());
+    }
     return HN.loop(tl);
   }
 
@@ -164,7 +175,9 @@
       if (made) return;
       made = true;
       try {
-        img.src = await HN.ticketImage({ from: "Minh", to: "Thảo", when: HN.fmtWhen(HN.iso(HN.nextSaturday()), 19, 30), plans: ["cafe", "xemphim"] });
+        const url = URL.createObjectURL(await HN.ticketImage({ from: "Minh", to: "Thảo", when: HN.fmtWhen(HN.iso(HN.nextSaturday()), 19, 30), plans: ["cafe", "xemphim"] }));
+        HN.onLeave(() => URL.revokeObjectURL(url));
+        img.src = url;
       } catch (e) { console.error(e); return; }
       host.classList.add("ready");
       if (reduce) return;
@@ -200,13 +213,15 @@
     document.body.append(a);
     HN.onLeave(() => a.remove());
     let pastHero = false, bandBelow = true;
+    // the fixed topbar covers the top of the viewport: a hero button hidden under it already counts as scrolled past
+    const top = $("#topbar") ? $("#topbar").offsetHeight : 0;
     const io = new IntersectionObserver((entries) => {
       entries.forEach((e) => {
-        if (e.target === heroCta) pastHero = !e.isIntersecting && e.boundingClientRect.top < 0;
+        if (e.target === heroCta) pastHero = !e.isIntersecting && e.boundingClientRect.top < top;
         else bandBelow = !e.isIntersecting && e.boundingClientRect.top > 0;
       });
       a.classList.toggle("show", pastHero && bandBelow);
-    });
+    }, { rootMargin: `-${top}px 0px 0px 0px` });
     io.observe(heroCta);
     io.observe(band);
     HN.onLeave(() => io.disconnect());

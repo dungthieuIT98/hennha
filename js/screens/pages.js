@@ -6,6 +6,7 @@
 
   function enter() {
     const app = $("#app");
+    HN.pauseOffscreen([[$(".doc-card", app), []]]);
     gsap.fromTo($$(".doc-card > *", app), { y: 16, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.03, duration: 0.4, ease: "power3.out", clearProps: "transform,opacity" });
     HN.focusHeading(app);
   }
